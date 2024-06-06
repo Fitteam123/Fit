@@ -36,3 +36,16 @@ class User(AbstractBaseUser, PermissionsMixin):
     class Meta:
         db_table = 'user_1'
         app_label = 'user'
+
+from django.db import models
+from django.conf import settings
+class Exercise(models.Model):
+    username = models.ForeignKey('User', models.DO_NOTHING, db_column='username')
+    exercise_time = models.DateTimeField()
+    exercisetime = models.IntegerField()
+    exercise_id = models.AutoField(primary_key=True)
+
+    class Meta:
+        managed = False
+        db_table = 'exercise'
+

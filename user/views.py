@@ -4,7 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from .models import User
+from .models import User, Exercise
 from django.views.decorators.csrf import csrf_protect
 import json
 def home(request):
@@ -54,10 +54,10 @@ def register(request):
 from .tasks import run_python_script
 def run_python(request):
     # 记录收到的请求
-    #print("收到 POST 请求")#调试点
+    # print("收到 POST 请求")#调试点
     if request.method == 'POST':
         # 触发异步任务
-        #print("触发异步任务")#调试点
+        # print("触发异步任务")#调试点
         run_python_script('com_test.py')
         return HttpResponse(status=204)  # 成功
     else:
@@ -66,27 +66,62 @@ def run_python(request):
 @csrf_protect
 def address(request):
     if request.method == 'POST':
+        # print("收到address_post")
         # 解析请求体中的数据
         try:
             data = json.loads(request.body)
             user_address = data.get('address')
         except json.JSONDecodeError:
             return JsonResponse({'success': False, 'message': '请求数据解析失败'}, status=400)
-
         # 检查地址数据是否存在
         if not user_address:
             return JsonResponse({'success': False, 'message': '未提供地址信息'}, status=400)
-
         # 检查用户是否已认证
-        if not request.user.is_authenticated:
-            return JsonResponse({'success': False, 'message': '用户未认证'}, status=401)
-
+        # if not request.user.is_authenticated:
+        #     return JsonResponse({'success': False, 'message': '用户未认证'}, status=401)
         # 保存地址信息到用户模型中
         user = request.user
         user.user_address = user_address
         user.save()
-
+        # print("保存成功")
         return JsonResponse({'success': True, 'message': '地址保存成功！'})
-
     # 处理不支持的请求方法
     return JsonResponse({'success': False, 'message': '仅支持POST请求'}, status=405)
+
+def record(request):#记录运动时长的函数
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            exercisetime = data.get('exercisetime')
+
+            if exercisetime is None:
+                return JsonResponse({'success': False, 'message': 'exercisetime is required'})
+
+            user = request.user
+            Exercise.objects.create(username=user, exercisetime=exercisetime)
+            return JsonResponse({'success': True, 'message': 'Exercise record added successfully'})
+        except json.JSONDecodeError:
+            return JsonResponse({'success': False, 'message': 'Invalid JSON'})
+    else:
+        return JsonResponse({'success': False, 'message': 'Only POST requests are allowed'})
+
+from django.http import JsonResponse
+from django.contrib.auth.decorators import login_required
+
+@login_required
+def get_recent_exercises(request):
+    user = request.user
+    recent_exercises = Exercise.objects.filter(username=user).order_by('-exercise_time')[:15]
+
+    exercises_list = []
+    for exer in recent_exercises:
+        exercises_list.append({
+            'exercise_time': exer.exercise_time,
+            'exercisetime': exer.exercisetime
+        })
+
+    user_data = {
+        'username': user.username
+    }
+
+    return JsonResponse({'success': True, 'name': user_data, 'exercises': exercises_list})

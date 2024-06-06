@@ -179,7 +179,7 @@
 				</section>
 				<script>
 					window.onload = function() {
-						fetch('exer.json')
+						fetch('exer')
 						.then(response => response.json())
 						.then(data => {			
 							document.getElementById("user_name").innerHTML = data.name;							
