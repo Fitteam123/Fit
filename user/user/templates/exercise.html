@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+{% load static %}
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>开始运动</title>	
+	<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+	<style>
+		html, body {
+		  margin: 0;
+		  height: 100%;
+		  font-family: Arial, sans-serif;
+		  overflow: auto;
+		}
+
+		#c,#c-2{
+		  width: 100%;
+		  height: 100%; /* Adjust for the top bar height */
+		  display: block;
+		  z-index: 1;
+		}
+
+
+		#top-bar {
+		  width: 100%;
+		  height: 40px;
+		  background-color: #333;
+		  color: white;
+		  display: flex;
+		  align-items: center;
+		  justify-content: space-between;
+		  padding: 0 20px;
+		  box-sizing: border-box;
+		  position: relative;
+		  z-index: 3;
+		}
+		#timer {
+		  font-size: 18px;
+		  z-index: 3;
+		}
+		#timer-btn {
+		  padding: 8px 15px;
+		  background-color: #4CAF50;
+		  border: none;
+		  color: white;
+		  font-size: 16px;
+		  cursor: pointer;
+		  border-radius: 4px;
+		  z-index: 3;
+		}
+
+		#model-container, #model-container-2 {
+			position: absolute;
+			width: 50%;
+			height: calc(100% - 40px);
+			top: 40px;
+		}
+
+		#model-container {
+			left: 0;
+		}
+
+		#model-container-2 {
+			right: 0;
+		}
+
+        #videoElement {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+			z-index: -1;
+        }
+		#videoContainer {
+            position: absolute;
+            top: 40px;
+            left: 0;
+            width: 15%; /* 视频元素占据左半部分 */
+            height: 30%;
+            overflow: hidden;
+			z-index: 2;
+        }
+		
+	  </style>
+	</head>
+	<body>	
+		<div id="top-bar">
+			<div id="model-name">动作名称</div>
+			<button id="timer-btn">开始运动</button>
+			<div id="timer">00:00:00</div>
+		</div>
+		<div id="model-container">
+			<canvas id="c"></canvas>
+		</div>
+        <div id="model-container-2">
+            <canvas id="c-2"></canvas>
+        </div>
+		<div id="videoContainer">
+			<video id="videoElement" autoplay></video>
+		</div>	
+
+<script type="importmap">
+    {
+      "imports": {
+        "three": "https://threejs.org/build/three.module.js",
+        "three/addons/": "https://threejs.org/examples/jsm/"
+    }
+    }
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
+import { MTLLoader } from 'three/addons/loaders/MTLLoader.js';
+
+function main() {
+
+	const canvas = document.querySelector( '#c' );
+	const renderer = new THREE.WebGLRenderer( { antialias: true, canvas } );
+    
+    const canvas_2 = document.querySelector( '#c-2' );
+	const renderer_2 = new THREE.WebGLRenderer( { antialias: true, canvas:canvas_2 } );
+
+	const fov = 45;
+	const aspect = 2; // the canvas default
+	const near = 0.1;
+	const far = 100;
+
+	const camera = new THREE.PerspectiveCamera( fov, aspect, near, far );
+	camera.position.set( 0, 10, 20 );
+
+	const camera_2 = new THREE.PerspectiveCamera( fov, aspect, near, far );
+	camera_2.position.set( 0, 10, 20 );
+
+	const controls = new OrbitControls( camera, canvas );
+    const controls_2 = new OrbitControls( camera_2, canvas_2 );
+
+	controls.target.set( 0, 5, 0 );
+	controls.update();
+
+	controls_2.target.set( 0, 5, 0 );
+	controls_2.update();
+
+	const scene = new THREE.Scene();
+	scene.background = new THREE.Color( 'black' );
+
+	const scene_2 = new THREE.Scene();
+	scene_2.background = new THREE.Color( 'black' );
+
+	const modelNameElement = document.getElementById('model-name');
+	
+ 	const timerElement = document.getElementById('timer');
+	const timerButton = document.getElementById('timer-btn');
+
+	let timerInterval;
+	let timerSeconds = 0;
+
+	var videoContainer = document.getElementById('videoContainer');
+	var videoElement = document.getElementById('videoElement');
+	var recordButton = document.getElementById('timer-btn');
+	var mediaRecorder;
+	var chunks = [];
+
+	// 获取用户授权并访问摄像头
+	navigator.mediaDevices.getUserMedia({ video: true })
+	.then(function(stream) {
+		videoElement.srcObject = stream;
+		mediaRecorder = new MediaRecorder(stream);
+
+		// 监听录制开始事件
+		mediaRecorder.onstart = function(e) {
+			chunks = [];
+		};
+
+		// 监听数据可用事件
+		mediaRecorder.ondataavailable = function(e) {
+			chunks.push(e.data);
+		};
+
+		// 监听录制结束事件
+		mediaRecorder.onstop = function(e) {
+			var blob = new Blob(chunks, { 'type' : 'video/mp4' });
+			saveVideo(blob);
+		};
+	})
+	.catch(function(err) {
+		console.log("An error occurred: " + err);
+	});
+
+	
+	let imageCaptureInterval;
+
+	recordButton.addEventListener('click', () => {
+	if (timerButton.textContent === '开始运动') {
+		timerButton.textContent = '停止运动';
+		startTimer();
+		startImageCapture();
+		// 向后端发送POST请求
+		fetch('/run-python', {
+			method: 'POST',
+		})
+	} else {
+		timerButton.textContent = '开始运动';
+		stopTimer();
+		stopImageCapture();
+		sendExerciseDuration(timerSeconds); // 添加此行以发送运动时长
+	}
+	});
+
+	function startTimer() {
+	timerInterval = setInterval(() => {
+		timerSeconds++;
+		const hours = Math.floor(timerSeconds / 3600);
+		const minutes = Math.floor((timerSeconds % 3600) / 60);
+		const seconds = timerSeconds % 60;
+		timerElement.textContent = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+	}, 1000);
+	}
+
+	function stopTimer() {
+		clearInterval(timerInterval);
+	}
+
+
+	function sendExerciseDuration() {
+		// 发送运动时长到后端
+		fetch('', {
+			method: 'POST',
+			headers: {
+				'X-CSRFToken': document.querySelector('input[name="csrfmiddlewaretoken"]').value,
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({ duration: timerSeconds }) // 直接发送全局变量 timerSeconds
+		})
+
+	}
+
+	function startImageCapture() {
+		imageCaptureInterval = setInterval(captureImage, 5000);
+	}
+
+	function stopImageCapture() {
+		clearInterval(imageCaptureInterval);
+	}
+
+	function captureImage() {
+		const canvas = document.createElement('canvas');
+		canvas.width = videoElement.videoWidth;
+		canvas.height = videoElement.videoHeight;
+		const context = canvas.getContext('2d');
+		context.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+		canvas.toBlob((blob) => {
+			saveImage(blob);
+		}, 'image/png');
+	}
+
+	// 保存图像文件
+	function saveImage(blob) {
+		const url = URL.createObjectURL(blob);
+		const a = document.createElement('a');
+		a.href = url;
+		a.download = getFileName();
+		document.body.appendChild(a);
+		a.click();
+		document.body.removeChild(a);
+		window.URL.revokeObjectURL(url);
+	}
+
+	// 获取当前时间作为文件名
+	function getFileName() {
+		const now = new Date();
+		return now.getFullYear() + '.' + (now.getMonth() + 1) + '.' + now.getDate() + '.' + now.getHours() + '-' + now.getMinutes() + '.' + now.getSeconds() + '.png';
+	}
+	
+	// recordButton.addEventListener('click', () => {
+	// if (timerButton.textContent === '开始运动') {
+	// 	timerButton.textContent = '停止运动';
+	// 	startTimer();
+	// 	mediaRecorder.start();
+	// 	// 向后端发送POST请求
+	// 	fetch('/run-python', {
+	// 		method: 'POST',
+	// 	})
+	// } else {
+	// 	timerButton.textContent = '开始运动';
+	// 	stopTimer();
+	// 	mediaRecorder.stop();
+	// }
+	// });
+
+	// function startTimer() {
+	// timerInterval = setInterval(() => {
+	// 	timerSeconds++;
+	// 	const hours = Math.floor(timerSeconds / 3600);
+	// 	const minutes = Math.floor((timerSeconds % 3600) / 60);
+	// 	const seconds = timerSeconds % 60;
+	// 	timerElement.textContent = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+	// }, 1000);
+	// }
+
+	// function stopTimer() {
+	// clearInterval(timerInterval);
+	// }
+
+	//  // 保存视频文件
+	//  function saveVideo(blob) {
+	// 	var url = URL.createObjectURL(blob);
+	// 	var a = document.createElement('a');
+	// 	a.href = url;
+	// 	a.download = getFileName();
+	// 	document.body.appendChild(a);
+	// 	a.click();
+	// 	window.URL.revokeObjectURL(url);
+	// }
+
+	// // 获取当前时间作为文件名
+	// function getFileName() {
+	// 	var now = new Date();
+	// 	return now.getFullYear() + '.' + (now.getMonth() + 1) + '.' + now.getDate() + '.' + now.getHours() + '-' + now.getMinutes() + '.' + now.getSeconds() + '.mp4';
+	// }
+
+
+
+	{
+
+		const skyColor = 0xFFFFFF; 
+		const groundColor = 0xB97A20; // brownish orange
+		const intensity = 3;
+		const light = new THREE.HemisphereLight( skyColor, groundColor, intensity );
+		scene.add( light );
+		scene_2.add( light.clone() );
+
+	}
+
+	{
+
+		const color = 0xFFFFFF;
+		const intensity = 3;
+		const directionlight = new THREE.DirectionalLight( color, intensity );
+		directionlight.position.set( 5, 10, 2 );
+		scene.add( directionlight );
+		scene.add( directionlight.target );
+		scene_2.add( directionlight.clone() );
+		// scene_2.add( directionlight.target.clone() );
+
+	}
+
+	function frameArea( sizeToFitOnScreen, boxSize, boxCenter, camera ) {
+
+		const halfSizeToFitOnScreen = sizeToFitOnScreen * 0.5;
+		const halfFovY = THREE.MathUtils.degToRad( camera.fov * .5 );
+		const distance = halfSizeToFitOnScreen / Math.tan( halfFovY );
+		// compute a unit vector that points in the direction the camera is now
+		// in the xz plane from the center of the box
+		const direction = ( new THREE.Vector3() )
+			.subVectors( camera.position, boxCenter )
+			.multiply( new THREE.Vector3( 1, 0, 1 ) )
+			.normalize();
+
+		// move the camera to a position distance units way from the center
+		// in whatever direction the camera was from the center already
+		camera.position.copy( direction.multiplyScalar( distance ).add( boxCenter ) );
+
+		// pick some near and far values for the frustum that
+		// will contain the box.
+		camera.near = boxSize / 100;
+		camera.far = boxSize * 100;
+
+		camera.updateProjectionMatrix();
+
+		// point the camera to look at the center of the box
+		camera.lookAt( boxCenter.x, boxCenter.y, boxCenter.z );
+
+	}
+
+// 	const light1 = new THREE.HemisphereLight(0xFFFFFF, 0xB0B0B0, 0.6);
+//     const light2 = new THREE.DirectionalLight(0xFFFFFF, 0.6);
+//     light2.position.set(1, 2, 4);
+//     scene.add(light1);
+//     scene.add(light2);
+
+// 	function loadModel() {
+//     const objLoader = new OBJLoader();
+//     const mtlLoader = new MTLLoader();
+
+//     mtlLoader.load('products/final.mtl', (mtl) => {
+//         mtl.preload();
+//         objLoader.setMaterials(mtl);
+//         objLoader.load('products/final.obj', (object) => {
+//             object.position.set(0, 0, 0);
+//             scene.add(object);
+//             const box = new THREE.Box3().setFromObject(object);
+//             const boxSize = box.getSize(new THREE.Vector3()).length();
+//             const boxCenter = box.getCenter(new THREE.Vector3());
+
+//             frameArea(boxSize * 1.2, boxSize, boxCenter, camera);
+//         });
+//     });
+// }
+
+//     function refreshModel() {
+//         // // Clear the current scene
+//         // while (scene.children.length > 0) {
+//         //     scene.remove(scene.children[0]);
+//         // }
+
+//         // Add the lights again after clearing the scene
+//         scene.add(light1);
+//         scene.add(light2);
+
+//         // Reload the model
+//         loadModel();
+//     }	
+
+//     // Initial model load
+//     loadModel();
+
+//     // Set up the automatic refresh every 2 seconds
+//     setInterval(refreshModel, 2000);
+
+//     function render() {
+//         renderer.render(scene, camera);
+//         requestAnimationFrame(render);
+//     }
+
+// 	requestAnimationFrame( render );
+
+
+
+//	'{% static "products/final.mtl" %}'
+//	'{% static "products/final.obj" %}'
+
+
+	function loadModel(scene, camera, controls,modelsArray){		
+
+		const mtlLoader = new MTLLoader();
+		mtlLoader.load( '{% static "products/final.mtl" %}', ( mtl ) => {
+
+			mtl.preload();
+			const objLoader = new OBJLoader();
+			objLoader.setMaterials( mtl );
+			objLoader.load( '{% static "products/final.obj" %}', ( root ) => {
+
+				scene.add( root );
+				modelsArray.push(root);
+
+				// compute the box that contains all the stuff
+				// from root and below
+				const box = new THREE.Box3().setFromObject( root );
+
+				const boxSize = box.getSize( new THREE.Vector3() ).length();
+				const boxCenter = box.getCenter( new THREE.Vector3() );
+
+				// set the camera to frame the box
+				frameArea( boxSize * 1.2, boxSize, boxCenter, camera );				
+
+
+				// update the Trackball controls to handle the new size
+				controls.maxDistance = boxSize * 10;
+				controls.target.copy( boxCenter );
+				controls.update();
+				// alert("model loaded.");
+
+			} );
+
+		} );
+
+	}
+
+	const modelsArray =[];
+
+	loadModel(scene, camera, controls,modelsArray);
+  	loadModel(scene_2, camera_2, controls_2,modelsArray);
+
+
+	
+	let dataArray = []; // 声明一个全局数组用于存储 CSV 数据
+	let currentIndex = 0; // 声明一个全局变量用于追踪当前数据行的索引
+
+
+	// 使用 Fetch API 读取本地 CSV 文件
+	fetch('received_data.csv')
+	.then(response => response.text())
+	.then(text => {
+		Papa.parse(text, {
+			header: true, // 如果 CSV 文件有表头
+			dynamicTyping: true, // 自动类型转换
+			complete: function(results) {
+				dataArray = results.data;
+				startRealtimeDataUpdates();
+			}
+		});
+	})
+	.catch(error => console.error('Error fetching the CSV file:', error));
+
+	window.models=modelsArray;
+
+	function startRealtimeDataUpdates() {
+		setInterval(() => {
+			if (dataArray.length > 0) {
+				// 获取当前数据行
+				const dataRow = dataArray[currentIndex];
+
+				// 假设数据列名为 'value'
+				const dataValue = dataRow.Channel1;
+
+				// 根据数据值计算颜色
+				const color = getColorFromValue(dataValue);
+
+				// 修改模型颜色
+				if (window.models && window.models.length>0) {
+					window.models.forEach(model => {
+						modifyMeshColor(model, 'change', color);						
+					});
+				}
+
+				// 更新索引，循环遍历
+				currentIndex = (currentIndex + 1) % dataArray.length;
+			}
+		}, 100); // 每秒接收一次数据
+	}
+
+	// // 模拟接收实时数据并根据数据值更新模型颜色
+	// function startRealtimeDataUpdates() {
+	// 	setInterval(() => {
+	// 		// 模拟接收一个随机数作为实时数据
+	// 		const dataValue = Math.random();
+
+	// 		// 根据数据值计算颜色
+	// 		const color = getColorFromValue(dataValue);
+
+	// 		// 修改模型颜色
+	// 		if (window.model) {
+	// 			modifyMeshColor(window.model, 'change', color);
+	// 		}
+	// 	}, 1000); // 每秒接收一次数据
+	// }
+
+	// 函数：根据数据值计算颜色
+	function getColorFromValue(value) {
+		// 假设数据值在 0 到 1 之间，将其映射到颜色范围
+		const mappedValue = (3000-value)/2000;
+		const hue = 360 - mappedValue * 360;
+		return new THREE.Color(`hsl(${hue}, 100%, 50%)`).getHex();
+	}
+
+	// 函数：修改特定部分的颜色
+	function modifyMeshColor(object, targetName, color) {
+		object.traverse((child) => {
+			if (child.isMesh && child.name === targetName) {
+				// 克隆材质
+				const newMaterial = child.material.clone();
+				newMaterial.color.setHex(color);
+				child.material = newMaterial;
+				// 确保材质不透明
+				child.material.transparent = false;
+				child.material.opacity = 1;
+			}
+		});
+	}
+
+	function resizeRendererToDisplaySize( renderer ) {
+
+		const canvas = renderer.domElement;
+		const width = canvas.clientWidth;
+		const height = canvas.clientHeight;
+		const needResize = canvas.width !== width || canvas.height !== height;
+		if ( needResize ) {
+
+			renderer.setSize( width, height, false );
+
+		}
+
+		return needResize;
+
+	}
+
+
+
+	function render() {
+
+		if ( resizeRendererToDisplaySize( renderer ) ) {
+
+			const canvas = renderer.domElement;
+			camera.aspect = canvas.clientWidth / canvas.clientHeight;
+			camera.updateProjectionMatrix();
+
+		}
+		if (resizeRendererToDisplaySize(renderer_2)) {
+			const canvas_2 = renderer_2.domElement;
+			camera_2.aspect = canvas_2.clientWidth / canvas_2.clientHeight;
+			camera_2.updateProjectionMatrix();
+		}
+
+
+		renderer.render( scene, camera );
+		renderer_2.render( scene_2, camera_2 );
+
+		requestAnimationFrame( render );
+
+	}
+
+	 requestAnimationFrame( render );
+	 
+
+
+	// $(function () {
+	// 	setInterval(function () {
+	// 		$(".model-container").load(location.href + " .model-container");//注意后面Div的id前面的空格，很重要！（也可以使用类名，或者某一种类名的.id名）
+	// 	}, 2000);//设置自动刷新时间
+	// })
+
+}
+
+main();
+</script>
+</body>
+</html>
