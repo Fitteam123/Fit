@@ -1,0 +1,6 @@
+name: eeg
+channels:
+  - microsoft
+  - conda-forge
+  - defaults
+prefix: D:\anaconda\envs\eeg
