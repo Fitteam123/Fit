@@ -1,6 +1,7 @@
 #添加时间戳
 import serial
 from datetime import datetime
+from threading import Thread
 
 # 设置串口参数
 port = 'COM3'  # 根据实际情况修改串口号
@@ -12,7 +13,15 @@ timeout = 3600  # 超时时间（-1表示无限制）
 
 class reader:
     def __init__(self):
+        for port in ['COM1', 'COM2', 'COM3', 'COM4', 'COM5', 'COM6', 'COM7', 'COM8']:
+            try:
+                self.ser = serial.Serial(port, baudRate, bytesize=dataBits, parity=parity, stopbits=stopBits, timeout=timeout)
+                if self.ser.isOpen():
+                    break
+            except:
+                continue
         self.ser = serial.Serial(port, baudRate, bytesize=dataBits, parity=parity, stopbits=stopBits, timeout=timeout)
+
         self.data = []
         self.timestamp = []
         self.raw_data = []
@@ -22,7 +31,18 @@ class reader:
     def run(self):
         while True:
             if self.status:
-
+                line = self.ser.readline()
+                if line:
+                    data_str = line.decode(errors='ignore').strip()
+                    raw_data = data_str.split(',')
+                    raw_data = [float(i) for i in raw_data]
+                    self.raw_data.append(raw_data)
+                    self.raw_timestamp.append(datetime.now().timestamp())
+                    if len(self.raw_data) > 2000:
+                        self.raw_data.pop(0)
+                        self.raw_timestamp.pop(0)   
+            else:
+                break
 
     def start(self):
         if self.ser.isOpen():
@@ -31,36 +51,3 @@ class reader:
     
     def stop(self):
         self.status = False 
-        
-
-# # 打开串口连接
-# ser = serial.Serial(port, baudRate, bytesize=dataBits, parity=parity, stopbits=stopBits, timeout=timeout)
-
-# if ser.isOpen():
-#     print("串口已打开")
-# else:
-#     print("串口打开失败")
-#     exit()
-
-# # 创建文件用于保存数据
-# # file_path = "received_data"
-
-# # 读取并保存数据到文件中
-# # with open(file_path, "w") as file:
-#     # file.write("timestamp,Channel 1,Channel 2,Channel 3,Channel 4,Channel 5,Channel 6\n")
-#     # first_line = ser.readline()
-
-
-# while True:
-#     line = ser.readline()  # 读取字节串数据
-#     if line:  # 如果接收到数据
-#         # timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # 获取当前时间戳
-#         # timestamp = int(datetime.now().timestamp())  # 获取 Unix 时间戳
-#         data_str = line.decode(errors='ignore').strip()  # 使用默认编码解码为字符串并去除空白字符
-#         raw_data = data_str.split(',')
-#         # file.write(f"{timestamp},{data_str}\n")  # 将带时间戳的数据写入文件
-#         # print("已写入数据：", timestamp,',', data_str)
-#     else:
-#         print("未接收到数据")
-
-# ser.close()

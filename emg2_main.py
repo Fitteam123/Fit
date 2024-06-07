@@ -108,39 +108,6 @@ def calculate_TDMNF(emg_signal, window_len=848, stride=108):  # 计算TD-MNF特�
     return td_mnf
 
 
-def calculate_TDMNF_for_segments(file_path):
-    # 读取文件数据
-    eeg_config = sEMGConfig(file_path)
-    emg_signal = eeg_config.pipeline(LOW_FREQ, HIGH_FREQ)
-    # 检查数据长度是否是 segment_len 的整数倍
-    if emg_signal.size(1) % segment_len != 0:
-        emg_signal = emg_signal[:, : (emg_signal.size(1) // segment_len) * segment_len]
-
-    # 将数据切分为长度为segment_len的段
-    num_segments = emg_signal.size(1) // segment_len
-    s = emg_signal.split(segment_len // 4, dim=1)
-    segments = [
-        torch.cat([s[i], s[i + 1], s[i + 2], s[i + 3]], dim=1)
-        for i in range(len(s) - 3)
-    ]
-    # 对每个段调用 calculate_TDMNF 函数
-    tdmnf_values = [calculate_TDMNF(segment) for segment in segments]
-
-    return torch.stack(tdmnf_values)
-
-
-def TDMNFs(file_paths):
-    all_tdmnf_values = []
-    for file_path in file_paths:
-        # 计算当前文件的tdmnf_values
-        tdmnf_values = calculate_TDMNF_for_segments(file_path)
-        all_tdmnf_values.append(tdmnf_values)
-
-    # 将所有文件的tdmnf_values堆叠成一个多维张量
-    # all_tdmnf_values = torch.stack(all_tdmnf_values)
-    return all_tdmnf_values
-
-
 def plot_TDMNFs(all_tdmnf_values):
     # 获取通道数量
     num_channels = all_tdmnf_values[0][0].size(0)
@@ -207,54 +174,28 @@ SAMPALING_RATE = 425
 LOW_FREQ = 10
 HIGH_FREQ = 200  # 应小于sampling_rate/2
 SEG_LEN = 848  # 切片长度（425为一秒）   与window_len相同
-# file_paths = [
-#     f"D:/AA_HZJ/com_test/data/{file_name}"
-#     for file_name in os.listdir("D:/AA_HZJ/com_test/data")
-#     if file_name.startswith("re")
-# ]
 
-
-if __name__ == "__main__":
-    # TDMNFs
-    # all_tdmnf_values = TDMNFs(file_paths)
-    all_W = []
-    all_H = []
-    all_rankings = []
-    all_vaf = []
-
-    # for i, tdmnf_values in enumerate(all_tdmnf_values):
-    #     print(f"第{i+1}个文件的TDMNF值为：")
-    #     print(tdmnf_values)
-    #     rankings = calculate_rankings(tdmnf_values)
-    #     print(rankings)
-    #     all_rankings.append(rankings)
-    #     W, H = calculate_NNMF_from_TDMNF([tdmnf_values], n_components=4)  # n_components是运动类别数
-    #     all_W.append(W)
-    #     all_H.append(H)
-    #     vaf = calculate_VAF(tdmnf_values.T, np.dot(W[0], H[0]))
-    #     all_vaf.append(vaf)
-    #     print(vaf)   #大于0.95则说明拟合效果较好
-
-
-        
-        
-    #     #W，H有待归一化...
-    #     print(f"第{i+1}个文件的肌肉协同结构矩阵：")   #w1，w2等等表示各肌肉协同结构,表示各肌肉在该协同募集模式中的贡献程度
-    #     print(W)
-        
-    #     print(f"第{i+1}个文件的肌肉协同激活系数矩阵：")     #h1，h2等等表示各肌肉协同激活系数，表示按时间调制的下行神经信号的强弱程度
-    #     print(H)
-
-    #     #对于H，定义当幅值大于峰值的0.5倍时，认为该肌肉协同为明显激活！！！
-
-
-    #     Cw = np.mean(W[0], axis=0)
-    #     print("该肌肉协同的肌肉贡献度：") 
-    #     print(Cw)
-    #     Ch = np.mean(H[0], axis=1)
-    #     print("该肌肉协同的激活程度：")
-    #     print(Ch)
-        
-        
-    plot_TDMNFs(all_tdmnf_values)
-    
+# for i, tdmnf_values in enumerate(all_tdmnf_values):
+#     print(f"第{i+1}个文件的TDMNF值为：")
+#     print(tdmnf_values)
+#     rankings = calculate_rankings(tdmnf_values)
+#     print(rankings)
+#     all_rankings.append(rankings)
+#     W, H = calculate_NNMF_from_TDMNF([tdmnf_values], n_components=4)  # n_components是运动类别数
+#     all_W.append(W)
+#     all_H.append(H)
+#     vaf = calculate_VAF(tdmnf_values.T, np.dot(W[0], H[0]))
+#     all_vaf.append(vaf)
+#     print(vaf)   #大于0.95则说明拟合效果较好
+#     #W，H有待归一化...
+#     print(f"第{i+1}个文件的肌肉协同结构矩阵：")   #w1，w2等等表示各肌肉协同结构,表示各肌肉在该协同募集模式中的贡献程度
+#     print(W)
+#     print(f"第{i+1}个文件的肌肉协同激活系数矩阵：")     #h1，h2等等表示各肌肉协同激活系数，表示按时间调制的下行神经信号的强弱程度
+#     print(H)
+#     #对于H，定义当幅值大于峰值的0.5倍时，认为该肌肉协同为明显激活！！！
+#     Cw = np.mean(W[0], axis=0)
+#     print("该肌肉协同的肌肉贡献度：") 
+#     print(Cw)
+#     Ch = np.mean(H[0], axis=1)
+#     print("该肌肉协同的激活程度：")
+#     print(Ch)
