@@ -5,55 +5,87 @@ import numpy as np
 import torch
 import matplotlib.pyplot as plt
 from sklearn.decomposition import NMF
-import torch.nn.functional as F
 
 mne.set_log_level("WARNING")
 
 
-class sEMGConfig:
-    def __init__(self, file_path):
-        self.file_path = file_path
-        self.sampling_rate = sampling_rate
-        self.raw_data = None
-        self.resized_data = None
+def normalize_data(data):
+    # data应该是一个形状为(channels, time)的numpy数组
+    normalized_data = np.zeros(data.shape)
+    for i in range(data.shape[0]):
+        # 找出最大的三个值的平均和最小的三个值的平均
+        max_val = np.mean(np.sort(data[i])[-3:])
+        min_val = np.mean(np.sort(data[i])[:3])
+        normalized_data[i] = (data[i] - min_val) / (max_val - min_val)
+    return normalized_data
 
-    def loadAndresize_data(self, file_path):
-        self.resized_data = pd.read_csv(file_path).to_numpy(dtype=np.float64)
-        self.resized_data = self.resized_data[:, 1:].T * 1.0
-        print(f"数据加载并转换后类型: {self.resized_data.dtype}")  # 调试输出
+# class sEMGConfig:
+#     def __init__(self, file_path):
+#         self.file_path = file_path
+#         self.sampling_rate = sampling_rate
+#         self.raw_data = None
+#         self.resized_data = None
 
-    def normalize_data(self, data):
-        # data应该是一个形状为(channels, time)的numpy数组
-        normalized_data = np.zeros(data.shape)
-        for i in range(data.shape[0]):
-            # 找出最大的三个值的平均和最小的三个值的平均
-            max_val = np.mean(np.sort(data[i])[-3:])
-            min_val = np.mean(np.sort(data[i])[:3])
-            normalized_data[i] = (data[i] - min_val) / (max_val - min_val)
-        return normalized_data
+#     def loadAndresize_data(self, file_path):
+#         self.resized_data = pd.read_csv(file_path).to_numpy(dtype=np.float64)
+#         self.resized_data = self.resized_data[:, 1:].T * 1.0
+#         print(f"数据加载并转换后类型: {self.resized_data.dtype}")  # 调试输出、
 
-    def preprocess_data(self, low_freq, high_freq):
-        if self.resized_data is not None:
-            iir_params = dict(order=4, ftype="butter")  # 设置为巴特沃兹滤波器
-            filtered_data = mne.filter.filter_data(
-                self.resized_data,
-                self.sampling_rate,
-                low_freq,
-                high_freq,
-                method="iir",
-                iir_params=iir_params,
-            )
-            normalized_data = self.normalize_data(filtered_data)
-            return normalized_data
-        else:
-            print("Please load and resize the data first.")
-            return None
+#     def preprocess_data(self, low_freq, high_freq):
+#         if self.resized_data is not None:
+#             iir_params = dict(order=4, ftype="butter")  # 设置为巴特沃兹滤波器
+#             filtered_data = mne.filter.filter_data(
+#                 self.resized_data,
+#                 self.sampling_rate,
+#                 low_freq,
+#                 high_freq,
+#                 method="iir",
+#                 iir_params=iir_params,
+#             )
+#             normalized_data = normalize_data(filtered_data)
+#             return normalized_data
+#         else:
+#             print("Please load and resize the data first.")
+#             return None
 
-    def pipeline(self, low_freq, high_freq):
-        self.loadAndresize_data(self.file_path)
-        preprocessed_data = self.preprocess_data(low_freq, high_freq)
-        emg_signal = torch.from_numpy(preprocessed_data)
-        return emg_signal
+#     def pipeline(self, low_freq, high_freq):
+#         self.loadAndresize_data(self.file_path)
+#         preprocessed_data = self.preprocess_data(low_freq, high_freq)
+#         emg_signal = torch.from_numpy(preprocessed_data)
+#         return emg_signal
+
+
+def get_emg_signal(raw_data, sampling_rate, low_freq, high_freq):
+    # raw_data是一个形状为(channels, time)的numpy数组
+    iir_params = dict(order=4, ftype="butter")  # 设置为巴特沃兹滤波器
+    filtered_data = mne.filter.filter_data(
+        raw_data,
+        sampling_rate,
+        low_freq,
+        high_freq,
+        method="iir",
+        iir_params=iir_params,
+    )
+    normalized_data = normalize_data(filtered_data)
+    return torch.from_numpy(normalized_data)
+
+def TDMNF_gen(raw_data, sampling_rate, low_freq, high_freq, segment_len):
+    emg_signal = get_emg_signal(raw_data, sampling_rate, low_freq, high_freq)
+
+    if emg_signal.size(1) % segment_len != 0:
+        emg_signal = emg_signal[:, : (emg_signal.size(1) // segment_len) * segment_len]
+
+    # 将数据切分为长度为segment_len的段
+    num_segments = emg_signal.size(1) // segment_len
+    s = emg_signal.split(segment_len // 4, dim=1)
+    segments = [
+        torch.cat([s[i], s[i + 1], s[i + 2], s[i + 3]], dim=1)
+        for i in range(len(s) - 3)
+    ]
+    # 对每个段调用 calculate_TDMNF 函数
+    tdmnf_values = [calculate_TDMNF(segment) for segment in segments]
+
+    return torch.stack(tdmnf_values)
 
 
 def calculate_TDMNF(emg_signal, window_len=848, stride=108):  # 计算TD-MNF特征  768 96是固定超参
@@ -73,15 +105,13 @@ def calculate_TDMNF(emg_signal, window_len=848, stride=108):  # 计算TD-MNF特�
             )
 
     td_mnf /= num_windows  # 计算每个通道的TD-MNF的平均值
-    # td_mnf = F.softmax(td_mnf, dim=0)*100
-
     return td_mnf
 
 
 def calculate_TDMNF_for_segments(file_path):
     # 读取文件数据
     eeg_config = sEMGConfig(file_path)
-    emg_signal = eeg_config.pipeline(low_freq, high_freq)
+    emg_signal = eeg_config.pipeline(LOW_FREQ, HIGH_FREQ)
     # 检查数据长度是否是 segment_len 的整数倍
     if emg_signal.size(1) % segment_len != 0:
         emg_signal = emg_signal[:, : (emg_signal.size(1) // segment_len) * segment_len]
@@ -173,56 +203,57 @@ def calculate_VAF(original_matrix, reconstructed_matrix):
     return VAF
 
 
-sampling_rate = 425
-low_freq = 10
-high_freq = 200  # 应小于sampling_rate/2
-segment_len = 848  # 切片长度（425为一秒）   与window_len相同
-file_paths = [
-    f"D:/AA_HZJ/com_test/data/{file_name}"
-    for file_name in os.listdir("D:/AA_HZJ/com_test/data")
-    if file_name.startswith("re")
-]
+SAMPALING_RATE = 425
+LOW_FREQ = 10
+HIGH_FREQ = 200  # 应小于sampling_rate/2
+SEG_LEN = 848  # 切片长度（425为一秒）   与window_len相同
+# file_paths = [
+#     f"D:/AA_HZJ/com_test/data/{file_name}"
+#     for file_name in os.listdir("D:/AA_HZJ/com_test/data")
+#     if file_name.startswith("re")
+# ]
 
 
 if __name__ == "__main__":
-    all_tdmnf_values = TDMNFs(file_paths)
+    # TDMNFs
+    # all_tdmnf_values = TDMNFs(file_paths)
     all_W = []
     all_H = []
     all_rankings = []
     all_vaf = []
 
-    for i, tdmnf_values in enumerate(all_tdmnf_values):
-        print(f"第{i+1}个文件的TDMNF值为：")
-        print(tdmnf_values)
-        rankings = calculate_rankings(tdmnf_values)
-        print(rankings)
-        all_rankings.append(rankings)
-        W, H = calculate_NNMF_from_TDMNF([tdmnf_values], n_components=4)  # n_components是运动类别数
-        all_W.append(W)
-        all_H.append(H)
-        vaf = calculate_VAF(tdmnf_values.T, np.dot(W[0], H[0]))
-        all_vaf.append(vaf)
-        print(vaf)   #大于0.95则说明拟合效果较好
+    # for i, tdmnf_values in enumerate(all_tdmnf_values):
+    #     print(f"第{i+1}个文件的TDMNF值为：")
+    #     print(tdmnf_values)
+    #     rankings = calculate_rankings(tdmnf_values)
+    #     print(rankings)
+    #     all_rankings.append(rankings)
+    #     W, H = calculate_NNMF_from_TDMNF([tdmnf_values], n_components=4)  # n_components是运动类别数
+    #     all_W.append(W)
+    #     all_H.append(H)
+    #     vaf = calculate_VAF(tdmnf_values.T, np.dot(W[0], H[0]))
+    #     all_vaf.append(vaf)
+    #     print(vaf)   #大于0.95则说明拟合效果较好
 
 
         
         
-        #W，H有待归一化...
-        print(f"第{i+1}个文件的肌肉协同结构矩阵：")   #w1，w2等等表示各肌肉协同结构,表示各肌肉在该协同募集模式中的贡献程度
-        print(W)
+    #     #W，H有待归一化...
+    #     print(f"第{i+1}个文件的肌肉协同结构矩阵：")   #w1，w2等等表示各肌肉协同结构,表示各肌肉在该协同募集模式中的贡献程度
+    #     print(W)
         
-        print(f"第{i+1}个文件的肌肉协同激活系数矩阵：")     #h1，h2等等表示各肌肉协同激活系数，表示按时间调制的下行神经信号的强弱程度
-        print(H)
+    #     print(f"第{i+1}个文件的肌肉协同激活系数矩阵：")     #h1，h2等等表示各肌肉协同激活系数，表示按时间调制的下行神经信号的强弱程度
+    #     print(H)
 
-        #对于H，定义当幅值大于峰值的0.5倍时，认为该肌肉协同为明显激活！！！
+    #     #对于H，定义当幅值大于峰值的0.5倍时，认为该肌肉协同为明显激活！！！
 
 
-        Cw = np.mean(W[0], axis=0)
-        print("该肌肉协同的肌肉贡献度：")   #理解为肌肉的重要程度？ 又被称为募集模式？
-        print(Cw)
-        Ch = np.mean(H[0], axis=1)
-        print("该肌肉协同的激活程度：")
-        print(Ch)
+    #     Cw = np.mean(W[0], axis=0)
+    #     print("该肌肉协同的肌肉贡献度：") 
+    #     print(Cw)
+    #     Ch = np.mean(H[0], axis=1)
+    #     print("该肌肉协同的激活程度：")
+    #     print(Ch)
         
         
     plot_TDMNFs(all_tdmnf_values)
