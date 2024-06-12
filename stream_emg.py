@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from sklearn.decomposition import NMF
 import mne
 from queue import Queue
+import time
 
 # 设置串口参数
 port = 'COM3'  # 根据实际情况修改串口号
@@ -19,6 +20,15 @@ timeout = 3600  # 超时时间（-1表示无限制）
 
 mne.set_log_level("WARNING")
 
+
+def pad_data(data, expected_length):
+    """
+    Pad the data with zeros if its length is less than expected_length
+    """
+    if len(data) < expected_length:
+        data += [0.0] * (expected_length - len(data))
+    return data
+
 def normalize_data(data):
     normalized_data = np.zeros(data.shape)
     for i in range(data.shape[0]):
@@ -26,6 +36,15 @@ def normalize_data(data):
         min_val = np.mean(np.sort(data[i])[:3])
         normalized_data[i] = (data[i] - min_val) / (max_val - min_val)
     return normalized_data
+
+
+
+def is_float(string):
+    try:
+        float(string)
+        return True
+    except ValueError:
+        return False
 
 class EMGReader:
     def __init__(self):
@@ -43,21 +62,29 @@ class EMGReader:
 
     def read_data(self):
         while self.status:
-            if self.ser.in_waiting:
+            if self.status:
+                # t1 = time.time()
                 line = self.ser.readline()
                 if line:
+                    # t2 = time.time()
                     data_str = line.decode(errors='ignore').strip()
-                    try:
-                        raw_data = [float(i) for i in data_str.split(',')]
-                        timestamp = datetime.now().timestamp()
-                        with self.lock:
+                    # try:
+                    tmp = data_str.split(',')
+                    # t3 = time.time()
+                    if is_float(tmp[0]):
+                        raw_data = [float(i) if is_float(i) else 0.0 for i in tmp]
+                        if raw_data:
+                            raw_data = pad_data(raw_data, 6)  # 使用pad_data函数填补数据
+                            timestamp = datetime.now().timestamp()
                             self.data_queue.put((raw_data, timestamp))
-                    except ValueError as e:
-                        print(f"Error parsing data: {data_str}, error: {e}")
-                    # raw_data = [float(i) for i in data_str.split(',')]
-                    # timestamp = datetime.now().timestamp()
-                    # with self.lock:
-                    #     self.data_queue.put((raw_data, timestamp))
+ 
+                        # print("OK",data_str, data_str.split(','))
+                    # t4 = time.time()
+                    # print(t2 - t1, t3 - t2, t4 - t3)
+                # except:
+                
+                    #     print("FUCK", data_str, data_str.split(','))
+                    
 
     def start(self):
         if self.ser.isOpen():
@@ -68,6 +95,7 @@ class EMGReader:
 
     def stop(self):
         self.status = False
+        print("stop listening 1")
         if self.read_thread.is_alive():
             self.read_thread.join()
 
@@ -86,11 +114,13 @@ def get_emg_signal(raw_data, sampling_rate, low_freq, high_freq):
 
 def TDMNF_gen(raw_data, sampling_rate, low_freq, high_freq, segment_len):
     emg_signal = get_emg_signal(raw_data, sampling_rate, low_freq, high_freq)
+    print(emg_signal.shape)
     if emg_signal.size(1) % segment_len != 0:
         emg_signal = emg_signal[:, : (emg_signal.size(1) // segment_len) * segment_len]
     num_segments = emg_signal.size(1) // segment_len
     s = emg_signal.split(segment_len // 4, dim=1)
     segments = [torch.cat([s[i], s[i + 1], s[i + 2], s[i + 3]], dim=1) for i in range(len(s) - 3)]
+    print(len(segments))
     tdmnf_values = [calculate_TDMNF(segment) for segment in segments]
     return torch.stack(tdmnf_values)
 
@@ -156,21 +186,33 @@ class EMGProcessor:
         self.processed_data = Queue()
 
     def process_data(self):
-        while self.reader.status:
-            if not self.reader.data_queue.empty():
-                raw_data, timestamp = self.reader.data_queue.get()
-                self.raw_data.append(raw_data)
-                self.raw_timestamp.append(timestamp)
-                if len(self.raw_data) >= self.segment_len:
-                    segment = np.array(self.raw_data[-self.segment_len:]).T
-                    tdmnf_values = TDMNF_gen(segment, self.sampling_rate, self.low_freq, self.high_freq, self.segment_len)
-                    self.processed_data.put(tdmnf_values)
+        while self.status:
+            # print("listening:::")
+            if self.reader.status:
+                if not self.reader.data_queue.empty():
+                    raw_data, timestamp = self.reader.data_queue.get()
+                    print(len(raw_data))
+                    if len(raw_data)!=6:
+                        print("fuck",raw_data)
+                        continue
+                    self.raw_data.append(raw_data)
+                    self.raw_timestamp.append(timestamp)
+                    if len(self.raw_data) >= self.segment_len:
+                        segment = np.array(self.raw_data[-self.segment_len:]).T
+                        tdmnf_values = TDMNF_gen(segment, self.sampling_rate, self.low_freq, self.high_freq, self.segment_len)
+                        self.processed_data.put(tdmnf_values)
+                    if len(self.raw_data) >= self.segment_len * 2:
+                        self.raw_data = self.raw_data[-self.segment_len:]
 
     def start(self):
+        self.status = True
         self.process_thread = Thread(target=self.process_data)
         self.process_thread.start()
 
     def stop(self):
+        self.status = False
+        print("stop listening 2")
+
         if self.process_thread.is_alive():
             self.process_thread.join()
 
@@ -190,7 +232,7 @@ if __name__ == "__main__":
             if not emg_processor.processed_data.empty():
                 tdmnf_values = emg_processor.processed_data.get()
                 # 在这里处理或传输tdmnf_values到前端
-                print(tdmnf_values)
+                print("TDMNF:", tdmnf_values)
     except KeyboardInterrupt:
         emg_reader.stop()
         emg_processor.stop()
