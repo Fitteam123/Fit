@@ -47,10 +47,17 @@ class EMGReader:
                 line = self.ser.readline()
                 if line:
                     data_str = line.decode(errors='ignore').strip()
-                    raw_data = [float(i) for i in data_str.split(',')]
-                    timestamp = datetime.now().timestamp()
-                    with self.lock:
-                        self.data_queue.put((raw_data, timestamp))
+                    try:
+                        raw_data = [float(i) for i in data_str.split(',')]
+                        timestamp = datetime.now().timestamp()
+                        with self.lock:
+                            self.data_queue.put((raw_data, timestamp))
+                    except ValueError as e:
+                        print(f"Error parsing data: {data_str}, error: {e}")
+                    # raw_data = [float(i) for i in data_str.split(',')]
+                    # timestamp = datetime.now().timestamp()
+                    # with self.lock:
+                    #     self.data_queue.put((raw_data, timestamp))
 
     def start(self):
         if self.ser.isOpen():
