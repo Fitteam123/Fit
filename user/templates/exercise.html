@@ -236,11 +236,11 @@ function main() {
 		timerButton.textContent = '停止运动';
 		startTimer();
 		startImageCapture();
-		BuildSocket();
 		// 向后端发送POST请求
 		fetch('/run-python', {
 			method: 'POST',
-		})
+		
+		BuildSocket();
 	} else {
 		timerButton.textContent = '开始运动';
 		stopTimer();
