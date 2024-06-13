@@ -528,9 +528,30 @@ function main() {
 
     window.models = modelsArray;
 
-    function startRealtimeDataUpdates() {
-        // 不再需要 setInterval，因为数据到达时会立即处理
-    }
+function startRealtimeDataUpdates() {
+	setInterval(() => {
+		if (dataArray.length > 0) {
+			// 获取当前数据行
+			const dataRow = dataArray[currentIndex];
+
+			// 假设数据列名为 'value'
+			const dataValue = dataRow.Channel1;
+
+			// 根据数据值计算颜色
+			const color = getColorFromValue(dataValue);
+
+			// 修改模型颜色
+			if (window.models && window.models.length>0) {
+				window.models.forEach(model => {
+					modifyMeshColor(model, 'change', color);						
+				});
+			}
+
+			// 更新索引，循环遍历
+			currentIndex = (currentIndex + 1) % dataArray.length;
+		}
+	}, 100); // 每秒接收一次数据
+}
 
     // 启动实时数据更新
     startRealtimeDataUpdates();
