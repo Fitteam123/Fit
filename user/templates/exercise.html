@@ -197,9 +197,11 @@ function main() {
 		startTimer();
 		startImageCapture();
 		// 向后端发送POST请求
-		fetch('/run-python', {
-			method: 'POST',
-		})
+		fetch('run_python/', {
+            method: 'POST',headers: {
+    		'X-CSRFToken': document.querySelector('input[name="csrfmiddlewaretoken"]').value,
+   			'Content-Type': 'application/json'
+  			}})
 	} else {
 		timerButton.textContent = '开始运动';
 		stopTimer();
@@ -435,12 +437,12 @@ function main() {
 	function loadModel(scene, camera, controls,modelsArray){		
 
 		const mtlLoader = new MTLLoader();
-		mtlLoader.load( '{% static "products/final.mtl" %}', ( mtl ) => {
+		mtlLoader.load( '{% static "products/final.mtl" %}', (mtl ) => {
 
 			mtl.preload();
 			const objLoader = new OBJLoader();
 			objLoader.setMaterials( mtl );
-			objLoader.load( '{% static "products/final.obj" %}', ( root ) => {
+			objLoader.load( '{% static "products/final.obj" %}', (root ) => {
 
 				scene.add( root );
 				modelsArray.push(root);
