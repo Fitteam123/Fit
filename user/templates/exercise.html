@@ -439,12 +439,12 @@ function main() {
 	function loadModel(scene, camera, controls,modelsArray){		
 
 		const mtlLoader = new MTLLoader();
-		mtlLoader.load( '{% static "products/final.mtl" %}', (mtl ) => {
+		mtlLoader.load( '{% static "products/test12.mtl" %}', (mtl ) => {
 
 			mtl.preload();
 			const objLoader = new OBJLoader();
 			objLoader.setMaterials( mtl );
-			objLoader.load( '{% static "products/final.obj" %}', (root ) => {
+			objLoader.load( '{% static "products/test12.obj" %}', (root ) => {
 
 				scene.add( root );
 				modelsArray.push(root);
@@ -483,7 +483,7 @@ function main() {
 	let currentIndex = 0; // 声明一个全局变量用于追踪当前数据行的索引
 
     // 创建 WebSocket 连接
-    const socket = new WebSocket('ws://your-websocket-url'); // 替换为你的 WebSocket 服务器地址
+    const socket = new WebSocket('ws://' + window.location.host + '/ws/output/'); // 替换为你的 WebSocket 服务器地址
 
     // 当 WebSocket 连接打开时
     socket.onopen = function(event) {

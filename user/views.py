@@ -66,6 +66,7 @@ def run_python(request):
                 'type': 'send_output'
             }
         )
+        print("打开连接")
         return HttpResponse(status=200)  # 成功
     else:
         return HttpResponse(status=405)  # 方法不允许

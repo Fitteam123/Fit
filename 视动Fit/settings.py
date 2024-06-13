@@ -30,6 +30,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -37,9 +38,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'user',
-    'channels',
 ]
-ASGI_APPLICATION = '视动Fit.asgi.user'
+ASGI_APPLICATION = '视动Fit.asgi.application'
 
 CHANNEL_LAYERS = {
     'default': {
