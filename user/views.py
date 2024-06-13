@@ -93,7 +93,7 @@ def record(request):
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
-            exercisetime = data.get('exercisetime')
+            exercisetime = data.get('duration')
             if exercisetime is None:
                 return JsonResponse({'success': False, 'message': 'exercisetime is required'})
             user = request.user
