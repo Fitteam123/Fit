@@ -52,13 +52,20 @@ def register(request):
     return JsonResponse({'success': False, 'message': '仅支持POST请求'})
 
 from .tasks import run_python_script
+from django.http import HttpResponse
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
+
 def run_python(request):
-    # 记录收到的请求
-    # print("收到 POST 请求")#调试点
     if request.method == 'POST':
-        # 触发异步任务
-        # print("触发异步任务")#调试点
-        run_python_script('test.py')
+        # 触发 WebSocket 连接
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            'output_group',
+            {
+                'type': 'send_output'
+            }
+        )
         return HttpResponse(status=200)  # 成功
     else:
         return HttpResponse(status=405)  # 方法不允许
