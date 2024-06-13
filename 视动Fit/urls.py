@@ -4,6 +4,9 @@ from django.contrib import admin
 from django.urls import path, include
 from user.views import register, custom_login, home, personal, exercise, run_python, address, record, \
     get_recent_exercises  # 导入视图函数
+from django.conf import settings
+from django.conf.urls.static import static
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('accounts/', include('django.contrib.auth.urls')),  # 包含默认的用户认证 URL
@@ -15,10 +18,8 @@ urlpatterns = [
     path('exercise/run_python/', run_python, name='run_python'),
     path('personal/address/', address, name='address'),
     path('personal/exer/',get_recent_exercises,name='exer'),
+    path('exercise/record/',record,name='record')
 ]
-
-from django.conf import settings
-from django.conf.urls.static import static
 
 AUTH_USER_MODEL = 'user.User'
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

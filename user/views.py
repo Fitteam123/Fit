@@ -2,11 +2,11 @@ from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
 from .models import User, Exercise
 from django.views.decorators.csrf import csrf_protect
 import json
+from django.views.decorators.csrf import csrf_exempt
+from django.utils import timezone
 def home(request):
     return render(request, 'home.html')
 
@@ -58,8 +58,8 @@ def run_python(request):
     if request.method == 'POST':
         # 触发异步任务
         # print("触发异步任务")#调试点
-        run_python_script('com_test.py')
-        return HttpResponse(status=204)  # 成功
+        run_python_script('test.py')
+        return HttpResponse(status=200)  # 成功
     else:
         return HttpResponse(status=405)  # 方法不允许
 
@@ -88,26 +88,24 @@ def address(request):
     # 处理不支持的请求方法
     return JsonResponse({'success': False, 'message': '仅支持POST请求'}, status=405)
 
-def record(request):#记录运动时长的函数
+@csrf_exempt
+def record(request):
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
             exercisetime = data.get('exercisetime')
-
             if exercisetime is None:
                 return JsonResponse({'success': False, 'message': 'exercisetime is required'})
-
             user = request.user
-            Exercise.objects.create(username=user, exercisetime=exercisetime)
-            return JsonResponse({'success': True, 'message': 'Exercise record added successfully'})
+            Exercise.objects.create(username=user, exercisetime=exercisetime, exercise_time=timezone.now())
+            return HttpResponse(status=200)
         except json.JSONDecodeError:
-            return JsonResponse({'success': False, 'message': 'Invalid JSON'})
+            return HttpResponse(status=405)
     else:
         return JsonResponse({'success': False, 'message': 'Only POST requests are allowed'})
 
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
-
 @login_required
 def get_recent_exercises(request):
     user = request.user

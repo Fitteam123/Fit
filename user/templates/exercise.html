@@ -97,8 +97,8 @@
         </div>
 		<div id="videoContainer">
 			<video id="videoElement" autoplay></video>
-		</div>	
-
+		</div>
+        <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
 <script type="importmap">
     {
       "imports": {
@@ -198,10 +198,12 @@ function main() {
 		startImageCapture();
 		// 向后端发送POST请求
 		fetch('run_python/', {
-            method: 'POST',headers: {
+            method: 'POST',
+            headers: {
     		'X-CSRFToken': document.querySelector('input[name="csrfmiddlewaretoken"]').value,
    			'Content-Type': 'application/json'
-  			}})
+  			}
+        })
 	} else {
 		timerButton.textContent = '开始运动';
 		stopTimer();
@@ -227,7 +229,7 @@ function main() {
 
 	function sendExerciseDuration() {
 		// 发送运动时长到后端
-		fetch('', {
+		fetch('record/', {
 			method: 'POST',
 			headers: {
 				'X-CSRFToken': document.querySelector('input[name="csrfmiddlewaretoken"]').value,
@@ -482,7 +484,7 @@ function main() {
 
 
 	// 使用 Fetch API 读取本地 CSV 文件
-	fetch('received_data.csv')
+    /*fetch('received_data.csv')
 	.then(response => response.text())
 	.then(text => {
 		Papa.parse(text, {
@@ -494,7 +496,7 @@ function main() {
 			}
 		});
 	})
-	.catch(error => console.error('Error fetching the CSV file:', error));
+	.catch(error => console.error('Error fetching the CSV file:', error));*/
 
 	window.models=modelsArray;
 
