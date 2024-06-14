@@ -1,11 +1,10 @@
-# project_name/urls.py
-
 from django.contrib import admin
 from django.urls import path, include
 from user.views import register, custom_login, home, personal, exercise, run_python, address, record, \
     get_recent_exercises  # 导入视图函数
 from django.conf import settings
 from django.conf.urls.static import static
+from 视动Fit import routing
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -18,7 +17,8 @@ urlpatterns = [
     path('exercise/run_python/', run_python, name='run_python'),
     path('personal/address/', address, name='address'),
     path('personal/exer/',get_recent_exercises,name='exer'),
-    path('exercise/record/',record,name='record')
+    path('exercise/record/',record,name='record'),
+    path('ws/', include(routing.websocket_urlpatterns)),
 ]
 
 AUTH_USER_MODEL = 'user.User'

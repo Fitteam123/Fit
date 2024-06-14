@@ -4,7 +4,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>开始运动</title>	
+    <title>开始运动</title>
 	<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 	<style>
 		html, body {
@@ -80,10 +80,10 @@
             overflow: hidden;
 			z-index: 2;
         }
-		
+
 	  </style>
 	</head>
-	<body>	
+	<body>
 		<div id="top-bar">
 			<div id="model-name">动作名称</div>
 			<button id="timer-btn">开始运动</button>
@@ -118,7 +118,7 @@ function main() {
 
 	const canvas = document.querySelector( '#c' );
 	const renderer = new THREE.WebGLRenderer( { antialias: true, canvas } );
-    
+
     const canvas_2 = document.querySelector( '#c-2' );
 	const renderer_2 = new THREE.WebGLRenderer( { antialias: true, canvas:canvas_2 } );
 
@@ -149,7 +149,7 @@ function main() {
 	scene_2.background = new THREE.Color( 'black' );
 
 	const modelNameElement = document.getElementById('model-name');
-	
+
  	const timerElement = document.getElementById('timer');
 	const timerButton = document.getElementById('timer-btn');
 
@@ -188,7 +188,7 @@ function main() {
 		console.log("An error occurred: " + err);
 	});
 
-	
+
 	let imageCaptureInterval;
 
 	recordButton.addEventListener('click', () => {
@@ -276,7 +276,7 @@ function main() {
 		const now = new Date();
 		return now.getFullYear() + '.' + (now.getMonth() + 1) + '.' + now.getDate() + '.' + now.getHours() + '-' + now.getMinutes() + '.' + now.getSeconds() + '.png';
 	}
-	
+
 	// recordButton.addEventListener('click', () => {
 	// if (timerButton.textContent === '开始运动') {
 	// 	timerButton.textContent = '停止运动';
@@ -328,7 +328,7 @@ function main() {
 
 	{
 
-		const skyColor = 0xFFFFFF; 
+		const skyColor = 0xFFFFFF;
 		const groundColor = 0xB97A20; // brownish orange
 		const intensity = 3;
 		const light = new THREE.HemisphereLight( skyColor, groundColor, intensity );
@@ -415,7 +415,7 @@ function main() {
 
 //         // Reload the model
 //         loadModel();
-//     }	
+//     }
 
 //     // Initial model load
 //     loadModel();
@@ -436,7 +436,7 @@ function main() {
 //	'{% static "products/final.obj" %}'
 
 
-	function loadModel(scene, camera, controls,modelsArray){		
+	function loadModel(scene, camera, controls,modelsArray){
 
 		const mtlLoader = new MTLLoader();
 		mtlLoader.load( '{% static "products/test12.mtl" %}', (mtl ) => {
@@ -457,7 +457,7 @@ function main() {
 				const boxCenter = box.getCenter( new THREE.Vector3() );
 
 				// set the camera to frame the box
-				frameArea( boxSize * 1.2, boxSize, boxCenter, camera );				
+				frameArea( boxSize * 1.2, boxSize, boxCenter, camera );
 
 
 				// update the Trackball controls to handle the new size
@@ -478,7 +478,7 @@ function main() {
   	loadModel(scene_2, camera_2, controls_2,modelsArray);
 
 
-	
+
 	let dataArray = []; // 声明一个全局数组用于存储 CSV 数据
 	let currentIndex = 0; // 声明一个全局变量用于追踪当前数据行的索引
 
@@ -599,7 +599,7 @@ function main() {
 	}
 
 	 requestAnimationFrame( render );
-	 
+
 
 
 

@@ -7,22 +7,20 @@ For more information on this file, see
 https://docs.djangoproject.com/en/4.1/howto/deployment/asgi/
 """
 
+# 视动Fit/asgi.py
 import os
-
-from channels.auth import AuthMiddlewareStack
-from channels.routing import ProtocolTypeRouter, URLRouter
 from django.core.asgi import get_asgi_application
+from channels.routing import ProtocolTypeRouter, URLRouter
+from channels.auth import AuthMiddlewareStack
+import 视动Fit.routing
 
-import websoc
-from websoc.routing import websocket_urlpatterns
-
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "视动Fit.settings")
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', '视动Fit.settings')
 
 application = ProtocolTypeRouter({
     "http": get_asgi_application(),
     "websocket": AuthMiddlewareStack(
         URLRouter(
-            websoc.routing.websocket_urlpatterns
+            视动Fit.routing.websocket_urlpatterns
         )
     ),
 })

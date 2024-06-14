@@ -18,6 +18,19 @@ def exercise(request):
 def personal(request):
     return render(request, 'personal.html')
 
+def run_python(request):
+    if request.method == 'POST':
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            'output_group',
+            {
+                'type': 'send_output'
+            }
+        )
+        print("打开连接")
+        return HttpResponse(status=200)  # 成功
+    else:
+        return HttpResponse(status=405)  # 方法不允许
 
 @csrf_exempt
 def custom_login(request):
@@ -51,25 +64,11 @@ def register(request):
 
     return JsonResponse({'success': False, 'message': '仅支持POST请求'})
 
-from .tasks import run_python_script
+
 from django.http import HttpResponse
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 
-def run_python(request):
-    if request.method == 'POST':
-        # 触发 WebSocket 连接
-        channel_layer = get_channel_layer()
-        async_to_sync(channel_layer.group_send)(
-            'output_group',
-            {
-                'type': 'send_output'
-            }
-        )
-        print("打开连接")
-        return HttpResponse(status=200)  # 成功
-    else:
-        return HttpResponse(status=405)  # 方法不允许
 
 @csrf_protect
 def address(request):

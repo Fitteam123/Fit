@@ -7,3 +7,5 @@
 # 数据库迁移命令
 - python manage.py makemigrations
 - python manage.py migrate
+# 启动服务器
+- daphne -p 8000 视动Fit.asgi:application

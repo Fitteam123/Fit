@@ -1,12 +1,10 @@
 import time
 import random
 
-def generate_tdmnf():
-    """Generate a random tdmnf value."""
-    return random.uniform(0, 100)
+for _ in range(10):
+# while True:
+    # 生成6个随机数
+    numbers = [random.randint(1, 100) for _ in range(6)]
+    print(*numbers)  # 将6个数字打印到一行
+    time.sleep(1)  # 暂停1秒
 
-if __name__ == "__main__":
-    for _ in range(100):  # 输出10次
-        tdmnf_value = generate_tdmnf()
-        print(f"tdmnf: {tdmnf_value}")
-        time.sleep(1)  # 每隔1秒输出一次
