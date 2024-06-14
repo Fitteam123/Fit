@@ -134,7 +134,7 @@ function main() {
 	camera_2.position.set( 0, 10, 20 );
 
 	const controls = new OrbitControls( camera, canvas );
-    const controls_2 = new OrbitControls( camera_2, canvas_2 );
+   	 const controls_2 = new OrbitControls( camera_2, canvas_2 );
 
 	controls.target.set( 0, 5, 0 );
 	controls.update();
@@ -166,8 +166,24 @@ function main() {
 	// 获取用户授权并访问摄像头
 	navigator.mediaDevices.getUserMedia({ video: true })
 	.then(function(stream) {
+		// 展示视频流
 		videoElement.srcObject = stream;
+		
+		// 创建 MediaRecorder 对象
 		mediaRecorder = new MediaRecorder(stream);
+
+		// 创建 WebSocket 连接
+		var socket2 = new WebSocket('');
+
+		// 监听 WebSocket 连接打开事件
+		socket2.onopen = function(event) {
+			console.log("WebSocket is open now.");
+		};
+
+		// 监听 WebSocket 错误事件
+		socket2.onerror = function(event) {
+			console.error("WebSocket error observed:", event);
+		};
 
 		// 监听录制开始事件
 		mediaRecorder.onstart = function(e) {
@@ -177,11 +193,18 @@ function main() {
 		// 监听数据可用事件
 		mediaRecorder.ondataavailable = function(e) {
 			chunks.push(e.data);
+			
+			// 将数据块通过 WebSocket 发送到后端
+			if (socket2.readyState === WebSocket.OPEN) {
+				socket2.send(e.data);
+			} else {
+				console.error("WebSocket is not open. ReadyState: " + socket2.readyState);
+			}
 		};
 
 		// 监听录制结束事件
 		mediaRecorder.onstop = function(e) {
-			var blob = new Blob(chunks, { 'type' : 'video/mp4' });
+			var blob = new Blob(chunks, { 'type': 'video/mp4' });
 			saveVideo(blob);
 		};
 	})
@@ -189,38 +212,27 @@ function main() {
 		console.log("An error occurred: " + err);
 	});
 
+	// // 获取用户授权并访问摄像头
+	// navigator.mediaDevices.getUserMedia({ video: true })
+	// .then(function(stream) {
+	// 	videoElement.srcObject = stream;
+	// 	mediaRecorder = new MediaRecorder(stream);
 
-
-		
-	// 	const socket = new WebSocket("");
-
-	// 	const peerConnection = new RTCPeerConnection();
-
-	// 	// 添加视频流到连接中
-	// 	stream.getTracks().forEach(function(track) {
-	// 		peerConnection.addTrack(track, stream);
-	// 	});
-
-	// 	// 将连接的ICE候选信息发送给后端
-	// 	peerConnection.onicecandidate = function(event) {
-	// 		if (event.candidate) {
-	// 			socket.send(JSON.stringify({ type: 'candidate', candidate: event.candidate }));
-	// 		}
+	// 	// 监听录制开始事件
+	// 	mediaRecorder.onstart = function(e) {
+	// 		chunks = [];
 	// 	};
 
-	// 	// 创建SDP offer并发送给后端
-	// 	peerConnection.createOffer()
-	// 		.then(function(offer) {
-	// 			return peerConnection.setLocalDescription(offer);
-	// 		})
-	// 		.then(function() {
-	// 			socket.send(JSON.stringify({ type: 'offer', offer: peerConnection.localDescription }));
-	// 		})
-	// 		.catch(function(error) {
-	// 			// 处理错误
-	// 			console.error("Error",error);
-	// 		});
-		
+	// 	// 监听数据可用事件
+	// 	mediaRecorder.ondataavailable = function(e) {
+	// 		chunks.push(e.data);
+	// 	};
+
+	// 	// 监听录制结束事件
+	// 	mediaRecorder.onstop = function(e) {
+	// 		var blob = new Blob(chunks, { 'type' : 'video/mp4' });
+	// 		saveVideo(blob);
+	// 	};
 	// })
 	// .catch(function(err) {
 	// 	console.log("An error occurred: " + err);
@@ -228,8 +240,7 @@ function main() {
 
 
 
-	
-	// let imageCaptureInterval;
+		
 
 	recordButton.addEventListener('click', () => {
 	if (timerButton.textContent === '开始运动') {
