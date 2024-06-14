@@ -568,10 +568,8 @@ function main() {
 		socket.onmessage = function(event) {
 			try {
 				const data = JSON.parse(event.data);
-				if (Array.isArray(data)) {
-					dataArray = data; // 假设接收到的是一个数据数组
-				} else {
-					dataArray.push(data); // 假设接收到的是一条数据
+				if (data && typeof data === 'object') {
+					dataArray.push(data); // 添加新数据到数组中
 				}
 
 				// 修改模型颜色
