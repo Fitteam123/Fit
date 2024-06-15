@@ -163,60 +163,27 @@ function main() {
 	var chunks = [];
 
 
-	// 获取用户授权并访问摄像头
-	navigator.mediaDevices.getUserMedia({ video: true })
-	.then(function(stream) {
-		// 展示视频流
-		videoElement.srcObject = stream;
-		
-		// 创建 MediaRecorder 对象
-		mediaRecorder = new MediaRecorder(stream);
-
-		// 创建 WebSocket 连接
-		var socket2 = new WebSocket('');
-
-		// 监听 WebSocket 连接打开事件
-		socket2.onopen = function(event) {
-			console.log("WebSocket is open now.");
-		};
-
-		// 监听 WebSocket 错误事件
-		socket2.onerror = function(event) {
-			console.error("WebSocket error observed:", event);
-		};
-
-		// 监听录制开始事件
-		mediaRecorder.onstart = function(e) {
-			chunks = [];
-		};
-
-		// 监听数据可用事件
-		mediaRecorder.ondataavailable = function(e) {
-			chunks.push(e.data);
-			
-			// 将数据块通过 WebSocket 发送到后端
-			if (socket2.readyState === WebSocket.OPEN) {
-				socket2.send(e.data);
-			} else {
-				console.error("WebSocket is not open. ReadyState: " + socket2.readyState);
-			}
-		};
-
-		// 监听录制结束事件
-		mediaRecorder.onstop = function(e) {
-			var blob = new Blob(chunks, { 'type': 'video/mp4' });
-			saveVideo(blob);
-		};
-	})
-	.catch(function(err) {
-		console.log("An error occurred: " + err);
-	});
-
 	// // 获取用户授权并访问摄像头
 	// navigator.mediaDevices.getUserMedia({ video: true })
 	// .then(function(stream) {
+	// 	// 展示视频流
 	// 	videoElement.srcObject = stream;
+		
+	// 	// 创建 MediaRecorder 对象
 	// 	mediaRecorder = new MediaRecorder(stream);
+
+	// 	// 创建 WebSocket 连接
+	// 	var socket2 = new WebSocket('');
+
+	// 	// 监听 WebSocket 连接打开事件
+	// 	socket2.onopen = function(event) {
+	// 		console.log("WebSocket is open now.");
+	// 	};
+
+	// 	// 监听 WebSocket 错误事件
+	// 	socket2.onerror = function(event) {
+	// 		console.error("WebSocket error observed:", event);
+	// 	};
 
 	// 	// 监听录制开始事件
 	// 	mediaRecorder.onstart = function(e) {
@@ -226,11 +193,18 @@ function main() {
 	// 	// 监听数据可用事件
 	// 	mediaRecorder.ondataavailable = function(e) {
 	// 		chunks.push(e.data);
+			
+	// 		// 将数据块通过 WebSocket 发送到后端
+	// 		if (socket2.readyState === WebSocket.OPEN) {
+	// 			socket2.send(e.data);
+	// 		} else {
+	// 			console.error("WebSocket is not open. ReadyState: " + socket2.readyState);
+	// 		}
 	// 	};
 
 	// 	// 监听录制结束事件
 	// 	mediaRecorder.onstop = function(e) {
-	// 		var blob = new Blob(chunks, { 'type' : 'video/mp4' });
+	// 		var blob = new Blob(chunks, { 'type': 'video/mp4' });
 	// 		saveVideo(blob);
 	// 	};
 	// })
@@ -238,15 +212,91 @@ function main() {
 	// 	console.log("An error occurred: " + err);
 	// });
 
+	// 获取用户授权并访问摄像头
+	navigator.mediaDevices.getUserMedia({ video: true })
+	.then(function(stream) {
+		videoElement.srcObject = stream;
+		mediaRecorder = new MediaRecorder(stream);
+
+		// 监听录制开始事件
+		mediaRecorder.onstart = function(e) {
+			chunks = [];
+		};
+
+		// 监听数据可用事件
+		mediaRecorder.ondataavailable = function(e) {
+			chunks.push(e.data);
+		};
+
+		// 监听录制结束事件
+		mediaRecorder.onstop = function(e) {
+			var blob = new Blob(chunks, { 'type' : 'video/mp4' });
+			saveVideo(blob);
+		};
+	})
+	.catch(function(err) {
+		console.log("An error occurred: " + err);
+	});
 
 
-		
+	function BuildSocket()
+	{
+		// 创建 WebSocket 连接
+		const socket = new WebSocket('ws://localhost:8000/ws/output/'); // 替换为你的 WebSocket 服务器地址
+
+		// 当 WebSocket 连接打开时
+		socket.onopen = function(event) {
+			console.log('WebSocket connection opened:', event);
+		};
+
+		// 当接收到 WebSocket 消息时
+		socket.onmessage = function(event) {
+			try {
+				const data = JSON.parse(event.data);
+				if (data && typeof data === 'object') {
+					dataArray.push(data); // 添加新数据到数组中
+				}
+
+				// 修改模型颜色
+				if (window.models && window.models.length > 0) {
+					const currentIndex = dataArray.length - 1; // 获取最新数据的索引
+					const dataRow = dataArray[currentIndex];
+					const dataValue = dataRow.Channel1; // 假设数据列名为 'Channel1'
+					const color = getColorFromValue(dataValue); // 根据数据值计算颜色
+
+					window.models.forEach(model => {
+						modifyMeshColor(model, 'change', color);
+					});
+				}
+			} catch (error) {
+				console.error('Error parsing WebSocket message:', error);
+			}
+		};
+
+		// 发生错误时触发
+		socket.onerror = function(event) {
+			console.error('WebSocket error:', event);
+		};
+
+		// 连接关闭时触发
+		socket.onclose = function(event) {
+			console.log('WebSocket connection closed:', event);
+		};
+
+		window.models = modelsArray;
+
+		// 启动实时数据更新
+		startRealtimeDataUpdates();
+	}
+ 
+
+	let imageCaptureInterval;
 
 	recordButton.addEventListener('click', () => {
 	if (timerButton.textContent === '开始运动') {
 		timerButton.textContent = '停止运动';
 		startTimer();
-		startImageCapture();
+		//startImageCapture();
 		// 向后端发送POST请求
 		fetch('/run_python', {
 			method: 'POST',	
@@ -259,7 +309,7 @@ function main() {
 	}else {
 		timerButton.textContent = '开始运动';
 		stopTimer();
-		stopImageCapture();
+		//stopImageCapture();
 		sendExerciseDuration(timerSeconds); // 添加此行以发送运动时长
 	}
 	});
@@ -558,56 +608,6 @@ function main() {
     let dataArray = []; // 声明一个全局数组用于存储接收到的 WebSocket 数据
     let currentIndex = 0; // 声明一个全局变量用于追踪当前数据行的索引
 
-	function BuildSocket()
-	{
-		// 创建 WebSocket 连接
-		const socket = new WebSocket(''); // 替换为你的 WebSocket 服务器地址
-
-		// 当 WebSocket 连接打开时
-		socket.onopen = function(event) {
-			console.log('WebSocket connection opened:', event);
-		};
-
-		// 当接收到 WebSocket 消息时
-		socket.onmessage = function(event) {
-			try {
-				const data = JSON.parse(event.data);
-				if (data && typeof data === 'object') {
-					dataArray.push(data); // 添加新数据到数组中
-				}
-
-				// 修改模型颜色
-				if (window.models && window.models.length > 0) {
-					const currentIndex = dataArray.length - 1; // 获取最新数据的索引
-					const dataRow = dataArray[currentIndex];
-					const dataValue = dataRow.Channel1; // 假设数据列名为 'Channel1'
-					const color = getColorFromValue(dataValue); // 根据数据值计算颜色
-
-					window.models.forEach(model => {
-						modifyMeshColor(model, 'change', color);
-					});
-				}
-			} catch (error) {
-				console.error('Error parsing WebSocket message:', error);
-			}
-		};
-
-		// 发生错误时触发
-		socket.onerror = function(event) {
-			console.error('WebSocket error:', event);
-		};
-
-		// 连接关闭时触发
-		socket.onclose = function(event) {
-			console.log('WebSocket connection closed:', event);
-		};
-
-		window.models = modelsArray;
-
-		// 启动实时数据更新
-		startRealtimeDataUpdates();
-	}
- 
 
 	
 
