@@ -18,6 +18,7 @@ urlpatterns = [
     path('personal/address/', address, name='address'),
     path('personal/exer/',get_recent_exercises,name='exer'),
     path('exercise/record/',record,name='record'),
+    path('exercise/run_python/',run_python,name='run_python'),
     path('ws/', include(routing.websocket_urlpatterns)),
 ]
 
