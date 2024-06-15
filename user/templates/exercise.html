@@ -162,6 +162,12 @@ function main() {
 	var mediaRecorder;
 	var chunks = [];
 
+	let socket = new WebSocket('ws://localhost:8000/ws/output/'); // 替换为你的 WebSocket 服务器地址
+
+
+	
+
+
 
 	// // 获取用户授权并访问摄像头
 	// navigator.mediaDevices.getUserMedia({ video: true })
@@ -241,8 +247,9 @@ function main() {
 
 	function BuildSocket()
 	{
+
 		// 创建 WebSocket 连接
-		const socket = new WebSocket('ws://localhost:8000/ws/output/'); // 替换为你的 WebSocket 服务器地址
+		let socket = new WebSocket('ws://localhost:8000/ws/output/'); // 替换为你的 WebSocket 服务器地址
 
 		// 当 WebSocket 连接打开时
 		socket.onopen = function(event) {
@@ -302,23 +309,24 @@ function main() {
 	if (timerButton.textContent === '开始运动') {
 		timerButton.textContent = '停止运动';
 		startTimer();
-		//startImageCapture();
+		// startImageCapture();
 		// 向后端发送POST请求
-		fetch('run_python/', {
-			method: 'POST',	
-            headers: {
-                'X-CSRFToken': document.querySelector('input[name="csrfmiddlewaretoken"]').value,
-                'Content-Type': 'application/json',
-							},
-			} ).then(data => {
-            console.log('Success:', data);
-            BuildSocket(); // 在成功响应后调用BuildSocket函数
-		}).catch(error => {
-            console.error('Error:', error);
-        });
+		// fetch('run_python/', {
+		// 	method: 'POST',	
+        //     headers: {
+        //         'X-CSRFToken': document.querySelector('input[name="csrfmiddlewaretoken"]').value,
+        //         'Content-Type': 'application/json',
+		// 					},
+		// 	} ).then(data => {
+        //     console.log('Success:', data);
+		BuildSocket(); // 在成功响应后调用BuildSocket函数
+		// }).catch(error => {
+        //     console.error('Error:', error);
+        // });
 	}else {
 		timerButton.textContent = '开始运动';
 		stopTimer();
+		socket.close();
 		//stopImageCapture();
 		sendExerciseDuration(timerSeconds); // 添加此行以发送运动时长
 	}
