@@ -248,7 +248,7 @@ function main() {
 		startTimer();
 		startImageCapture();
 		// 向后端发送POST请求
-		fetch('/run-python', {
+		fetch('/run_python', {
 			method: 'POST',	
 			} ).then(data => {
             console.log('Success:', data);
