@@ -98,7 +98,7 @@
 		<div id="videoContainer">
 			<video id="videoElement" autoplay></video>
 		</div>	
-
+        <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
 <script type="importmap">
     {
       "imports": {
@@ -298,8 +298,12 @@ function main() {
 		startTimer();
 		//startImageCapture();
 		// 向后端发送POST请求
-		fetch('/run_python', {
+		fetch('run_python/', {
 			method: 'POST',	
+            headers: {
+                'X-CSRFToken': document.querySelector('input[name="csrfmiddlewaretoken"]').value,
+                'Content-Type': 'application/json',
+							},
 			} ).then(data => {
             console.log('Success:', data);
             BuildSocket(); // 在成功响应后调用BuildSocket函数
@@ -331,12 +335,12 @@ function main() {
 
 	function sendExerciseDuration() {
 		// 发送运动时长到后端
-		fetch('', {
+		fetch('record/', {
 			method: 'POST',
-			// headers: {
-			// 	'X-CSRFToken': document.querySelector('input[name="csrfmiddlewaretoken"]').value,
-			// 	'Content-Type': 'application/json'
-			//},
+			headers: {
+			'X-CSRFToken': document.querySelector('input[name="csrfmiddlewaretoken"]').value,
+			'Content-Type': 'application/json'
+			},
 			body: JSON.stringify({ duration: timerSeconds }) // 直接发送全局变量 timerSeconds
 		})
 

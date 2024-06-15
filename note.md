@@ -10,7 +10,7 @@
 - javascript:fetch('address/', {
 				method: 'POST',
 							headers: {
-                                **'X-CSRFToken': document.querySelector('input[name="csrfmiddlewaretoken"]').value,**
+                                'X-CSRFToken': document.querySelector('input[name="csrfmiddlewaretoken"]').value,
 								'Content-Type': 'application/json',
 							},
 							body: JSON.stringify({ address: address }),
