@@ -333,9 +333,9 @@ function main() {
 		// 发送运动时长到后端
 		fetch('', {
 			method: 'POST',
-			headers: {
-				'X-CSRFToken': document.querySelector('input[name="csrfmiddlewaretoken"]').value,
-				'Content-Type': 'application/json'
+			// headers: {
+			// 	'X-CSRFToken': document.querySelector('input[name="csrfmiddlewaretoken"]').value,
+			// 	'Content-Type': 'application/json'
 			},
 			body: JSON.stringify({ duration: timerSeconds }) // 直接发送全局变量 timerSeconds
 		})
