@@ -249,10 +249,14 @@ function main() {
 		startImageCapture();
 		// 向后端发送POST请求
 		fetch('/run-python', {
-			method: 'POST',
-		
-		BuildSocket();
-	} else {
+			method: 'POST',	
+			} ).then(data => {
+            console.log('Success:', data);
+            BuildSocket(); // 在成功响应后调用BuildSocket函数
+		}).catch(error => {
+            console.error('Error:', error);
+        });
+	}else {
 		timerButton.textContent = '开始运动';
 		stopTimer();
 		stopImageCapture();
