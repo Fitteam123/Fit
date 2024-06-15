@@ -517,12 +517,12 @@ function main() {
 	function loadModel(scene, camera, controls,modelsArray){		
 
 		const mtlLoader = new MTLLoader();
-		mtlLoader.load( 'products/test12.mtl', ( mtl ) => {
+		mtlLoader.load( '{% static "products/test12.mtl" %}', ( mtl ) => {
 
 			mtl.preload();
 			const objLoader = new OBJLoader();
 			objLoader.setMaterials( mtl );
-			objLoader.load( 'products/test12.obj', ( root ) => {
+			objLoader.load( '{% static "products/test12.obj" %}', ( root ) => {
 
 				scene.add( root );
 				modelsArray.push(root);
