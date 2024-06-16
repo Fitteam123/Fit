@@ -1,10 +1,16 @@
+# test.py
 import time
 import random
 
-for _ in range(10):
-# while True:
-    # 生成6个随机数
-    numbers = [random.randint(1, 100) for _ in range(6)]
-    print(*numbers)  # 将6个数字打印到一行
-    time.sleep(1)  # 暂停1秒
-
+def generate_data():
+    while True:
+        data = {
+            "channel1": random.randint(0, 100),
+            "channel2": random.randint(0, 100),
+            "channel3": random.randint(0, 100),
+            "channel4": random.randint(0, 100),
+            "channel5": random.randint(0, 100),
+            "channel6": random.randint(0, 100)
+        }
+        yield data
+        time.sleep(1)  # 模拟数据生成间隔

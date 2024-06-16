@@ -1,8 +1,8 @@
 import asyncio
 from channels.generic.websocket import AsyncWebsocketConsumer
-import subprocess
 import json
 import logging
+from test import generate_data  # 导入生成器函数
 
 logger = logging.getLogger(__name__)
 
@@ -10,6 +10,7 @@ class OutputConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         await self.accept()
         try:
+            self.generator = generate_data()
             await self.send_output()
         except Exception as e:
             error_message = f"Error in connect: {str(e)}"
@@ -25,29 +26,11 @@ class OutputConsumer(AsyncWebsocketConsumer):
 
     async def send_output(self):
         try:
-            result = subprocess.Popen(
-                ['python', 'test.py'],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True  # 将 stdout 和 stderr 解码为文本
-            )
-
             while True:
-                line = result.stdout.readline()
-                if not line:
-                    break
-
-                numbers = line.strip().split()  # 将每行数据分割成列表
-                data = {
-                    "channel1": numbers[0],
-                    "channel2": numbers[1],
-                    "channel3": numbers[2],
-                    "channel4": numbers[3],
-                    "channel5": numbers[4],
-                    "channel6": numbers[5]
-                }
+                data = next(self.generator)
                 message = json.dumps(data)
                 await self.send(text_data=message)
+                await asyncio.sleep(1)  # 与生成器的sleep时间一致
 
         except Exception as e:
             error_message = f"Error in send_output: {str(e)}"
