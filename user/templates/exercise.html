@@ -162,7 +162,7 @@ function main() {
 	var mediaRecorder;
 	var chunks = [];
 
-	let socket = new WebSocket('ws://localhost:8000/ws/output/'); // 替换为你的 WebSocket 服务器地址
+	let socket;
 
 
 	
@@ -247,9 +247,8 @@ function main() {
 
 	function BuildSocket()
 	{
-
 		// 创建 WebSocket 连接
-		let socket = new WebSocket('ws://localhost:8000/ws/output/'); // 替换为你的 WebSocket 服务器地址
+		socket = new WebSocket('ws://localhost:8000/ws/output/'); // 替换为你的 WebSocket 服务器地址
 
 		// 当 WebSocket 连接打开时
 		socket.onopen = function(event) {
@@ -326,7 +325,9 @@ function main() {
 	}else {
 		timerButton.textContent = '开始运动';
 		stopTimer();
-		socket.close();
+		if (socket) {
+            socket.close();
+        }
 		//stopImageCapture();
 		sendExerciseDuration(timerSeconds); // 添加此行以发送运动时长
 	}
