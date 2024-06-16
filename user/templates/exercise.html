@@ -162,6 +162,12 @@ function main() {
 	var mediaRecorder;
 	var chunks = [];
 
+	let socket = new WebSocket('ws://localhost:8000/ws/output/'); // 替换为你的 WebSocket 服务器地址
+
+
+	
+
+
 
 	// // 获取用户授权并访问摄像头
 	// navigator.mediaDevices.getUserMedia({ video: true })
@@ -241,8 +247,9 @@ function main() {
 
 	function BuildSocket()
 	{
+
 		// 创建 WebSocket 连接
-		const socket = new WebSocket('ws://localhost:8000/ws/output/'); // 替换为你的 WebSocket 服务器地址
+		let socket = new WebSocket('ws://localhost:8000/ws/output/'); // 替换为你的 WebSocket 服务器地址
 
 		// 当 WebSocket 连接打开时
 		socket.onopen = function(event) {
@@ -252,23 +259,29 @@ function main() {
 		// 当接收到 WebSocket 消息时
 		socket.onmessage = function(event) {
 			try {
+				console.log("message got");
 				const data = JSON.parse(event.data);
+				console.log("data:",data);
 				if (data && typeof data === 'object') {
-					dataArray.push(data); // 添加新数据到数组中
+					var dataValue = data.channel1; // 获取 Channel1 的值
+					console.log("dataValueL",dataValue);
+					console.log("data.channel1:", data.channel1);
 				}
+
+				const color = getColorFromValue(dataValue); // 假设这是一个根据数据值计算颜色的函数
 
 				// 修改模型颜色
 				if (window.models && window.models.length > 0) {
-					const currentIndex = dataArray.length - 1; // 获取最新数据的索引
-					const dataRow = dataArray[currentIndex];
-					const dataValue = dataRow.Channel1; // 假设数据列名为 'Channel1'
-					const color = getColorFromValue(dataValue); // 根据数据值计算颜色
-
 					window.models.forEach(model => {
-						modifyMeshColor(model, 'change', color);
+						modifyMeshColor(model, 'change', color); // 修改模型颜色的函数
 					});
 				}
-			} catch (error) {
+				else {
+					console.warn('Channel1 data is undefined or missing.');
+				}
+		
+			} 
+			catch (error) {
 				console.error('Error parsing WebSocket message:', error);
 			}
 		};
@@ -296,23 +309,24 @@ function main() {
 	if (timerButton.textContent === '开始运动') {
 		timerButton.textContent = '停止运动';
 		startTimer();
-		//startImageCapture();
+		// startImageCapture();
 		// 向后端发送POST请求
-		fetch('run_python/', {
-			method: 'POST',	
-            headers: {
-                'X-CSRFToken': document.querySelector('input[name="csrfmiddlewaretoken"]').value,
-                'Content-Type': 'application/json',
-							},
-			} ).then(data => {
-            console.log('Success:', data);
-            BuildSocket(); // 在成功响应后调用BuildSocket函数
-		}).catch(error => {
-            console.error('Error:', error);
-        });
+		// fetch('run_python/', {
+		// 	method: 'POST',	
+        //     headers: {
+        //         'X-CSRFToken': document.querySelector('input[name="csrfmiddlewaretoken"]').value,
+        //         'Content-Type': 'application/json',
+		// 					},
+		// 	} ).then(data => {
+        //     console.log('Success:', data);
+		BuildSocket(); // 在成功响应后调用BuildSocket函数
+		// }).catch(error => {
+        //     console.error('Error:', error);
+        // });
 	}else {
 		timerButton.textContent = '开始运动';
 		stopTimer();
+		socket.close();
 		//stopImageCapture();
 		sendExerciseDuration(timerSeconds); // 添加此行以发送运动时长
 	}
@@ -619,7 +633,7 @@ function main() {
 	// 函数：根据数据值计算颜色
 	function getColorFromValue(value) {
 		// 假设数据值在 0 到 1 之间，将其映射到颜色范围
-		const mappedValue = (3000-value)/2000;
+		const mappedValue = value/110;
 		const hue = 360 - mappedValue * 360;
 		return new THREE.Color(`hsl(${hue}, 100%, 50%)`).getHex();
 	}
