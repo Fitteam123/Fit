@@ -169,44 +169,44 @@ function main() {
 
 
 
-	// // 获取用户授权并访问摄像头
-	// navigator.mediaDevices.getUserMedia({ video: true })
-	// .then(function(stream) {
-	// 	// 展示视频流
-	// 	videoElement.srcObject = stream;
+	// 获取用户授权并访问摄像头
+	navigator.mediaDevices.getUserMedia({ video: true })
+	.then(function(stream) {
+		// 展示视频流
+		videoElement.srcObject = stream;
 		
-	// 	// 创建 MediaRecorder 对象
-	// 	mediaRecorder = new MediaRecorder(stream);
+		// 创建 MediaRecorder 对象
+		mediaRecorder = new MediaRecorder(stream);
 
-	// 	// 创建 WebSocket 连接
-	// 	var socket2 = new WebSocket('');
+		// 创建 WebSocket 连接
+		var socket2 = new WebSocket('');
 
-	// 	// 监听 WebSocket 连接打开事件
-	// 	socket2.onopen = function(event) {
-	// 		console.log("WebSocket is open now.");
-	// 	};
+		// 监听 WebSocket 连接打开事件
+		socket2.onopen = function(event) {
+			console.log("WebSocket is open now.");
+		};
 
-	// 	// 监听 WebSocket 错误事件
-	// 	socket2.onerror = function(event) {
-	// 		console.error("WebSocket error observed:", event);
-	// 	};
+		// 监听 WebSocket 错误事件
+		socket2.onerror = function(event) {
+			console.error("WebSocket error observed:", event);
+		};
 
-	// 	// 监听录制开始事件
-	// 	mediaRecorder.onstart = function(e) {
-	// 		chunks = [];
-	// 	};
+		// 监听录制开始事件
+		mediaRecorder.onstart = function(e) {
+			chunks = [];
+		};
 
-	// 	// 监听数据可用事件
-	// 	mediaRecorder.ondataavailable = function(e) {
-	// 		chunks.push(e.data);
+		// 监听数据可用事件
+		mediaRecorder.ondataavailable = function(e) {
+			chunks.push(e.data);
 			
-	// 		// 将数据块通过 WebSocket 发送到后端
-	// 		if (socket2.readyState === WebSocket.OPEN) {
-	// 			socket2.send(e.data);
-	// 		} else {
-	// 			console.error("WebSocket is not open. ReadyState: " + socket2.readyState);
-	// 		}
-	// 	};
+			// 将数据块通过 WebSocket 发送到后端
+			if (socket2.readyState === WebSocket.OPEN) {
+				socket2.send(e.data);
+			} else {
+				console.error("WebSocket is not open. ReadyState: " + socket2.readyState);
+			}
+		};
 
 	// 	// 监听录制结束事件
 	// 	mediaRecorder.onstop = function(e) {
@@ -219,30 +219,30 @@ function main() {
 	// });
 
 	// 获取用户授权并访问摄像头
-	navigator.mediaDevices.getUserMedia({ video: true })
-	.then(function(stream) {
-		videoElement.srcObject = stream;
-		mediaRecorder = new MediaRecorder(stream);
+	// navigator.mediaDevices.getUserMedia({ video: true })
+	// .then(function(stream) {
+	// 	videoElement.srcObject = stream;
+	// 	mediaRecorder = new MediaRecorder(stream);
 
-		// 监听录制开始事件
-		mediaRecorder.onstart = function(e) {
-			chunks = [];
-		};
+	// 	// 监听录制开始事件
+	// 	mediaRecorder.onstart = function(e) {
+	// 		chunks = [];
+	// 	};
 
-		// 监听数据可用事件
-		mediaRecorder.ondataavailable = function(e) {
-			chunks.push(e.data);
-		};
+	// 	// 监听数据可用事件
+	// 	mediaRecorder.ondataavailable = function(e) {
+	// 		chunks.push(e.data);
+	// 	};
 
-		// 监听录制结束事件
-		mediaRecorder.onstop = function(e) {
-			var blob = new Blob(chunks, { 'type' : 'video/mp4' });
-			saveVideo(blob);
-		};
-	})
-	.catch(function(err) {
-		console.log("An error occurred: " + err);
-	});
+	// 	// 监听录制结束事件
+	// 	mediaRecorder.onstop = function(e) {
+	// 		var blob = new Blob(chunks, { 'type' : 'video/mp4' });
+	// 		saveVideo(blob);
+	// 	};
+	// })
+	// .catch(function(err) {
+	// 	console.log("An error occurred: " + err);
+	// });
 
 
 	function BuildSocket()
