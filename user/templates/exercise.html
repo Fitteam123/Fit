@@ -207,6 +207,10 @@ function main() {
 				console.error("WebSocket is not open. ReadyState: " + socket2.readyState);
 			}
 		};
+	})
+	.catch(function(err) {
+		console.log("An error occurred: " + err);
+	});
 
 	// 	// 监听录制结束事件
 	// 	mediaRecorder.onstop = function(e) {
