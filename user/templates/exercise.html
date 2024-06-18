@@ -165,6 +165,7 @@ function main() {
 	let socket;
 	let socket2;
 
+	let captureInterval;
 	
 
 	function BuildSocket2(){
@@ -192,29 +193,56 @@ function main() {
 			
 			// 连接关闭时触发
 			socket2.onclose = function(event) {
-				console.log('WebSocket2 connection closed:', event);
+				console.log('WebSocket2 connection closed:', event.code);
 			};
 
-			// 监听录制开始事件
-			mediaRecorder.onstart = function(e) {
-				chunks = [];
-			};
-			
+			// 创建 canvas 元素来捕获视频帧
+			var canvas = document.createElement('canvas');
+			var context = canvas.getContext('2d');
 
-			// 监听数据可用事件
-			mediaRecorder.ondataavailable = function(e) {
-				chunks.push(e.data);
-				console.log("data got:",e.data.type)
-				// 将数据块通过 WebSocket 发送到后端
-				if (socket2.readyState === WebSocket.OPEN) {
-					console.log("data send:",e.data.type);
-					socket2.send(e.data);
-				} else {
-					console.error("WebSocket is not open. ReadyState: " + socket2.readyState);
-				}
+			videoElement.onloadedmetadata = function() {
+				// 设置 canvas 的大小与视频元素一致
+				canvas.width = videoElement.videoWidth;
+				canvas.height = videoElement.videoHeight;
+
+				// 定时捕获视频帧并发送图片
+				setInterval(function() {
+					// 绘制当前视频帧到 canvas 上
+					context.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+
+					// 将 canvas 转换为 data URL (图片格式)
+					canvas.toBlob(function(blob) {
+						if (socket2.readyState === WebSocket.OPEN) {
+							console.log("Image data send:", blob.type, "  ", blob.size);
+							socket2.send(blob);
+						} else {
+							console.error("WebSocket2 is not open. ReadyState: " + socket2.readyState);
+						}
+					}, 'image/jpeg'); // 可以根据需要选择不同的图片格式，例如 'image/png'
+				}, 1000); // 参数为时间间隔，单位为毫秒，这里设置为每秒发送一次图片
+				// 将定时器存储在 videoElement 上，以便停止运动时清除
+				videoElement.captureInterval = captureInterval;
 			};
-			mediaRecorder.start(100); // 参数为时间间隔，单位为毫秒
 		})
+			// 监听录制开始事件
+			// mediaRecorder.onstart = function(e) {
+			// 	chunks = [];
+			// };
+			
+			// // 监听数据可用事件
+			// mediaRecorder.ondataavailable = function(e) {
+			// 	chunks.push(e.data);
+			// 	console.log("data got:",e.data.type)
+			// 	// 将数据块通过 WebSocket 发送到后端
+			// 	if (socket2.readyState === WebSocket.OPEN) {
+			// 		console.log("data send:",e.data.type,"  ",e.data.size);
+			// 		socket2.send(e.data);
+			// 	} else {
+			// 		console.error("WebSocket2 is not open. ReadyState: " + socket2.readyState);
+			// 	}
+			// };
+			// mediaRecorder.start(1000); // 参数为时间间隔，单位为毫秒
+			// })
 		.catch(function(err) {
 			console.log("An error occurred: " + err);
 		});
@@ -272,7 +300,7 @@ function main() {
 			try {
 				// console.log("message got");
 				const data = JSON.parse(event.data);
-				// console.log("data:",data);
+				console.log("data:",data);
 				if (data && typeof data === 'object') {
 					var dataValue = data.channel1; // 获取 Channel1 的值
 					// console.log("dataValueL",dataValue);
@@ -343,6 +371,11 @@ function main() {
        		}
 		if (socket2) {
 			socket2.close();
+		}
+		// 清除定时器以停止捕获图片
+		if (videoElement.captureInterval) {
+			clearInterval(videoElement.captureInterval);
+			videoElement.captureInterval = null;
 		}
 		//stopImageCapture();
 		sendExerciseDuration(timerSeconds); // 添加此行以发送运动时长
