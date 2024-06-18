@@ -49,6 +49,10 @@ class OutputConsumer(AsyncWebsocketConsumer):
                     await self.close(code=1000)  # 使用1000作为关闭代码
 
 class VideoConsumer(AsyncWebsocketConsumer):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.frame_index = 0  # 初始化帧索引
+        os.makedirs('frames', exist_ok=True)  # 确保 frames 目录存在
     async def connect(self):
         await self.accept()
         print("Video WebSocket connected")
@@ -60,7 +64,6 @@ class VideoConsumer(AsyncWebsocketConsumer):
         if bytes_data:
             print("Received video data")
             self.frame_index += 1
-
             # 将二进制数据转换为 numpy 数组
             nparr = np.frombuffer(bytes_data, np.uint8)
 
@@ -69,9 +72,12 @@ class VideoConsumer(AsyncWebsocketConsumer):
 
             if frame is not None:
                 # 保存图像
-                filename = f'frame_{self.frame_index}.jpg'
-                cv2.imwrite(os.path.join('frames', filename), frame)
+                filename = f'frames/frame_{self.frame_index:04d}.jpg'
+                cv2.imwrite(filename, frame)
+                print(f"Frame {self.frame_index} saved as {filename}")
             else:
                 print("Failed to decode frame")
         elif text_data:
             print("Received text data in video consumer")
+        else:
+            print("null")
