@@ -179,7 +179,7 @@ function main() {
 		mediaRecorder = new MediaRecorder(stream);
 
 		// 创建 WebSocket 连接
-		var socket2 = new WebSocket('');
+		var socket2 = new WebSocket('ws://localhost:8000/ws/video/');
 
 		// 监听 WebSocket 连接打开事件
 		socket2.onopen = function(event) {

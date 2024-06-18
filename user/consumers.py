@@ -1,9 +1,11 @@
 import asyncio
-from channels.generic.websocket import AsyncWebsocketConsumer
+from channels.generic.websocket import AsyncWebsocketConsumer,WebsocketConsumer
 import json
 import logging
-from test import generate_data  # 导入生成器函数
-
+from backend_test import generate_data  # 导入生成器函数
+import cv2
+import os
+import numpy as np
 logger = logging.getLogger(__name__)
 
 class OutputConsumer(AsyncWebsocketConsumer):
@@ -45,3 +47,31 @@ class OutputConsumer(AsyncWebsocketConsumer):
                 # 发送错误时再次检查连接状态
                 if self.keep_running:
                     await self.close(code=1000)  # 使用1000作为关闭代码
+
+class VideoConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        await self.accept()
+        print("Video WebSocket connected")
+
+    async def disconnect(self, close_code):
+        print("Video WebSocket disconnected")
+
+    async def receive(self, text_data=None, bytes_data=None):
+        if bytes_data:
+            print("Received video data")
+            self.frame_index += 1
+
+            # 将二进制数据转换为 numpy 数组
+            nparr = np.frombuffer(bytes_data, np.uint8)
+
+            # 解码图像
+            frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+
+            if frame is not None:
+                # 保存图像
+                filename = f'frame_{self.frame_index}.jpg'
+                cv2.imwrite(os.path.join('frames', filename), frame)
+            else:
+                print("Failed to decode frame")
+        elif text_data:
+            print("Received text data in video consumer")
