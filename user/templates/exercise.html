@@ -162,10 +162,9 @@ function main() {
 	var mediaRecorder;
 	var chunks = [];
 
-	let socket;
-	let socket2;
+	var socket;
+	var socket2;
 
-	let captureInterval;
 	
 
 	function BuildSocket2(){
@@ -179,7 +178,7 @@ function main() {
 			mediaRecorder = new MediaRecorder(stream);
 
 			// 创建 WebSocket 连接
-			var socket2 = new WebSocket('ws://localhost:8000/ws/video/');
+			socket2 = new WebSocket('ws://localhost:8000/ws/video/');
 
 			// 监听 WebSocket 连接打开事件
 			socket2.onopen = function(event) {
@@ -215,13 +214,13 @@ function main() {
 						if (socket2.readyState === WebSocket.OPEN) {
 							console.log("Image data send:", blob.type, "  ", blob.size);
 							socket2.send(blob);
-						} else {
-							console.error("WebSocket2 is not open. ReadyState: " + socket2.readyState);
-						}
+						} 
+						// else {
+						// 	console.error("WebSocket2 is not open. ReadyState: " + socket2.readyState);
+						// }
 					}, 'image/jpeg'); // 可以根据需要选择不同的图片格式，例如 'image/png'
 				}, 1000); // 参数为时间间隔，单位为毫秒，这里设置为每秒发送一次图片
 				// 将定时器存储在 videoElement 上，以便停止运动时清除
-				videoElement.captureInterval = captureInterval;
 			};
 		})
 			// 监听录制开始事件
@@ -332,7 +331,7 @@ function main() {
 
 		// 连接关闭时触发
 		socket.onclose = function(event) {
-			console.log('WebSocket connection closed:', event);
+			console.log('WebSocket connection closed:', event.code);
 		};
 
 		window.models = modelsArray;
@@ -371,11 +370,6 @@ function main() {
        		}
 		if (socket2) {
 			socket2.close();
-		}
-		// 清除定时器以停止捕获图片
-		if (videoElement.captureInterval) {
-			clearInterval(videoElement.captureInterval);
-			videoElement.captureInterval = null;
 		}
 		//stopImageCapture();
 		sendExerciseDuration(timerSeconds); // 添加此行以发送运动时长
