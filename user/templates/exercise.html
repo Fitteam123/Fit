@@ -163,7 +163,7 @@ function main() {
 	var chunks = [];
 
 	let socket;
-
+	let socket2;
 
 	
 
@@ -182,30 +182,38 @@ function main() {
 
 			// 监听 WebSocket 连接打开事件
 			socket2.onopen = function(event) {
-				console.log("WebSocket is open now.");
+				console.log("WebSocket2 connection opend:");
 			};
 
 			// 监听 WebSocket 错误事件
 			socket2.onerror = function(event) {
-				console.error("WebSocket error observed:", event);
+				console.error("WebSocket2 error observed:", event);
+			};
+			
+			// 连接关闭时触发
+			socket2.onclose = function(event) {
+				console.log('WebSocket2 connection closed:', event);
 			};
 
 			// 监听录制开始事件
 			mediaRecorder.onstart = function(e) {
 				chunks = [];
 			};
+			
 
 			// 监听数据可用事件
 			mediaRecorder.ondataavailable = function(e) {
 				chunks.push(e.data);
-				
+				console.log("data got:",e.data.type)
 				// 将数据块通过 WebSocket 发送到后端
 				if (socket2.readyState === WebSocket.OPEN) {
+					console.log("data send:",e.data.type);
 					socket2.send(e.data);
 				} else {
 					console.error("WebSocket is not open. ReadyState: " + socket2.readyState);
 				}
 			};
+			mediaRecorder.start(100); // 参数为时间间隔，单位为毫秒
 		})
 		.catch(function(err) {
 			console.log("An error occurred: " + err);
@@ -262,13 +270,13 @@ function main() {
 		// 当接收到 WebSocket 消息时
 		socket.onmessage = function(event) {
 			try {
-				console.log("message got");
+				// console.log("message got");
 				const data = JSON.parse(event.data);
-				console.log("data:",data);
+				// console.log("data:",data);
 				if (data && typeof data === 'object') {
 					var dataValue = data.channel1; // 获取 Channel1 的值
-					console.log("dataValueL",dataValue);
-					console.log("data.channel1:", data.channel1);
+					// console.log("dataValueL",dataValue);
+					// console.log("data.channel1:", data.channel1);
 				}
 
 				const color = getColorFromValue(dataValue); // 假设这是一个根据数据值计算颜色的函数
@@ -331,7 +339,7 @@ function main() {
 		timerButton.textContent = '开始运动';
 		stopTimer();
 		if (socket) {
-            		socket.close();
+			socket.close();
        		}
 		if (socket2) {
 			socket2.close();
