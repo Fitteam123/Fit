@@ -330,8 +330,11 @@ function main() {
 		timerButton.textContent = '开始运动';
 		stopTimer();
 		if (socket) {
-            socket.close();
-        }
+            		socket.close();
+       		}
+		if (socket2) {
+			socket2.close();
+		}
 		//stopImageCapture();
 		sendExerciseDuration(timerSeconds); // 添加此行以发送运动时长
 	}
