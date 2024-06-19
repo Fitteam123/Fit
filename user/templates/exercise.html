@@ -80,6 +80,25 @@
             overflow: hidden;
 			z-index: 2;
         }
+
+		#text-boxes {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 4;
+        }
+
+        .text-box {
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 200px;
+			color:white;
+        }
 		
 	  </style>
 	</head>
@@ -98,6 +117,11 @@
 		<div id="videoContainer">
 			<video id="videoElement" autoplay></video>
 		</div>	
+		<div id="text-boxes">
+			<div class="text-box" id="text-box-1">小臂与大臂角度:</div>
+			<div class="text-box" id="text-box-2">大臂与躯干平面角度:</div>
+			<div class="text-box" id="text-box-3">手臂平面与躯干面角度:</div>
+		</div>
         <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
 <script type="importmap">
     {
@@ -184,6 +208,19 @@ function main() {
 			socket2.onopen = function(event) {
 				console.log("WebSocket2 connection opend:");
 			};
+
+			// 监听收到的消息
+			socket2.addEventListener('message', function (event) {
+				console.log('收到消息: ', event.data);
+
+				// 假设收到的消息是 JSON 格式
+				const data = JSON.parse(event.data);
+
+				// 更新文本框内容
+				document.getElementById('text-box-1').textContent = data.box1 || '角度信息错误';
+				document.getElementById('text-box-2').textContent = data.box2 || '角度信息错误';
+				document.getElementById('text-box-3').textContent = data.box3 || '角度信息错误';
+			});
 
 			// 监听 WebSocket 错误事件
 			socket2.onerror = function(event) {
