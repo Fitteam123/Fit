@@ -28,7 +28,7 @@
 					<!-- Logo -->
 						<div id="logo">
 							<span class="image avatar48"><img src="{% static 'images/myphoto.jpg' %}" alt="" /></span>
-							<h1 id="user_name"></h1>
+							<h1 id="user_name">name</h1>
 						</div>
 
 					<!-- Nav -->
@@ -182,7 +182,7 @@
 						fetch('exer')
 						.then(response => response.json())
 						.then(data => {			
-							document.getElementById("user_name").innerHTML = data.name;							
+							document.getElementById("user_name"). innerHTML= data.name.username;							
 							if (data.success && data.exercises.length > 0) {
 								const exercises = data.exercises;
 								
