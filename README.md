@@ -8,3 +8,5 @@
 # 安装需求
 - python=3.9
 - pip install -r requirements.txt
+# 数据库连接说明
+- 不同局域网下使用ssh，同一局域网下注释settings开启通道和关闭通道代码，将端口号和主机ip更改
