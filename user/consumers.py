@@ -1,11 +1,14 @@
 import asyncio
-from channels.generic.websocket import AsyncWebsocketConsumer,WebsocketConsumer
 import json
 import logging
 from backend_test import generate_data  # 导入生成器函数
-import cv2
 import os
+import cv2
 import numpy as np
+import matplotlib.pyplot as plt
+import mediapipe as mp
+from channels.generic.websocket import AsyncWebsocketConsumer
+
 logger = logging.getLogger(__name__)
 
 class OutputConsumer(AsyncWebsocketConsumer):
@@ -48,11 +51,15 @@ class OutputConsumer(AsyncWebsocketConsumer):
                 if self.keep_running:
                     await self.close(code=1000)  # 使用1000作为关闭代码
 
+mp_pose = mp.solutions.pose
+pose = mp_pose.Pose()
+
 class VideoConsumer(AsyncWebsocketConsumer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.frame_index = 0  # 初始化帧索引
         os.makedirs('frames', exist_ok=True)  # 确保 frames 目录存在
+
     async def connect(self):
         await self.accept()
         print("Video WebSocket connected")
@@ -62,22 +69,79 @@ class VideoConsumer(AsyncWebsocketConsumer):
 
     async def receive(self, text_data=None, bytes_data=None):
         if bytes_data:
-            print("Received video data")
-            self.frame_index += 1
-            # 将二进制数据转换为 numpy 数组
-            nparr = np.frombuffer(bytes_data, np.uint8)
+            # print("Received video data")
+            image = np.frombuffer(bytes_data, np.uint8)
+            img = cv2.imdecode(image, cv2.IMREAD_COLOR)
+            if img is not None:
+                # 进行图像处理
+                processed_data = self.process_image(img)
+                if processed_data is not None:
+                    await self.send(text_data=json.dumps(processed_data))
 
-            # 解码图像
-            frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+    def get_degree1(self, landmarks):
+        p12 = np.array([landmarks[12].x, landmarks[12].y, landmarks[12].z])
+        p14 = np.array([landmarks[14].x, landmarks[14].y, landmarks[14].z])
+        p16 = np.array([landmarks[16].x, landmarks[16].y, landmarks[16].z])
 
-            if frame is not None:
-                # 保存图像
-                filename = f'frames/frame_{self.frame_index:04d}.jpg'
-                cv2.imwrite(filename, frame)
-                print(f"Frame {self.frame_index} saved as {filename}")
-            else:
-                print("Failed to decode frame")
-        elif text_data:
-            print("Received text data in video consumer")
-        else:
-            print("null")
+        v1 = p12 - p14
+        v2 = p16 - p14
+
+        cos = np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2))
+        return np.arccos(cos) * 180 / np.pi
+
+    def get_degree2(self, landmarks):
+        p11 = np.array([landmarks[11].x, landmarks[11].y, landmarks[11].z])
+        p12 = np.array([landmarks[12].x, landmarks[12].y, landmarks[12].z])
+        p24 = np.array([landmarks[24].x, landmarks[24].y, landmarks[24].z])
+        p14 = np.array([landmarks[14].x, landmarks[14].y, landmarks[14].z])
+
+        # 计算点 11, 12 和 24 定义的平面的法向量
+        v1 = p12 - p11
+        v2 = p24 - p11
+        normal = np.cross(v1, v2)
+
+        # 计算点 12 和 14 之间的向量
+        v3 = p14 - p12
+
+        # 计算法向量与该向量之间的角度
+        cos = np.dot(normal, v3) / (np.linalg.norm(normal) * np.linalg.norm(v3))
+        return 90 - np.arccos(cos) * 180 / np.pi
+
+    def get_degree3(self, landmarks):
+        p11 = np.array([landmarks[11].x, landmarks[11].y, landmarks[11].z])
+        p12 = np.array([landmarks[12].x, landmarks[12].y, landmarks[12].z])
+        p14 = np.array([landmarks[14].x, landmarks[14].y, landmarks[14].z])
+        p16 = np.array([landmarks[16].x, landmarks[16].y, landmarks[16].z])
+
+        # 计算点 12, 14 和 16 定义的平面的法向量
+        v1 = p14 - p12
+        v2 = p16 - p12
+        normal = np.cross(v1, v2)
+
+        # 计算点 12 和 11 之间的向量
+        v3 = p11 - p12
+
+        # 计算法向量与该向量之间的角度
+        cos = np.dot(normal, v3) / (np.linalg.norm(normal) * np.linalg.norm(v3))
+        return abs(90 - np.arccos(cos) * 180 / np.pi)
+
+    def process_image(self, img):
+        # 转换为 RGB 图像
+        image = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        results = pose.process(image)
+
+        if not results.pose_landmarks:
+            return None
+
+        landmarks = results.pose_landmarks.landmark
+
+        box1 = self.get_degree1(landmarks)
+        box2 = self.get_degree2(landmarks)
+        box3 = self.get_degree3(landmarks)
+
+        return {
+            "box1": box1,
+            "box2": box2,
+            "box3": box3
+        }
+
