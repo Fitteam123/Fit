@@ -104,7 +104,7 @@
 	</head>
 	<body>	
 		<div id="top-bar">
-			<div id="model-name">动作名称</div>
+			<div id="model-name">哑铃屈肘</div>
 			<button id="timer-btn">开始运动</button>
 			<div id="timer">00:00:00</div>
 		</div>
@@ -217,9 +217,9 @@ function main() {
 				const data = JSON.parse(event.data);
 
 				// 更新文本框内容
-				document.getElementById('text-box-1').textContent = data.box1 || '角度信息错误';
-				document.getElementById('text-box-2').textContent = data.box2 || '角度信息错误';
-				document.getElementById('text-box-3').textContent = data.box3 || '角度信息错误';
+				document.getElementById('text-box-1').textContent = ('小臂与大臂角度:',data.box1 )|| '角度信息错误';
+				document.getElementById('text-box-2').textContent = ('大臂与躯干平面角度:',data.box2)|| '角度信息错误';
+				document.getElementById('text-box-3').textContent = ('手臂平面与躯干面角度:',data.box3) || '角度信息错误';
 			});
 
 			// 监听 WebSocket 错误事件
@@ -714,7 +714,7 @@ function main() {
 	// 函数：根据数据值计算颜色
 	function getColorFromValue(value) {
 		// 假设数据值在 0 到 1 之间，将其映射到颜色范围
-		const mappedValue = value/110;
+		const mappedValue = value;
 		const hue = 360 - mappedValue * 360;
 		return new THREE.Color(`hsl(${hue}, 100%, 50%)`).getHex();
 	}
